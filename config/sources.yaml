@@ -1,0 +1,32 @@
+# 公开 RSS/Atom 新闻源。可以复制条目继续添加来源。
+# type 可选 rss 或 html；第一版建议优先使用 rss。
+sources:
+  - id: nasa_earth_observatory
+    name: NASA Earth Observatory
+    type: rss
+    url: https://earthobservatory.nasa.gov/feeds/earth-observatory.rss
+    tags: [遥感, 地球观测, satellite, remote sensing]
+    enabled: true
+
+  - id: esa_earth_observation
+    name: ESA Earth Observation
+    type: rss
+    url: https://www.esa.int/rssfeed/Our_Activities/Observing_the_Earth
+    tags: [遥感, 地球观测, satellite, remote sensing]
+    enabled: true
+
+  - id: noaa_ocean_service
+    name: NOAA Ocean Service（需按网站实际情况确认 RSS）
+    type: rss
+    url: https://oceanservice.noaa.gov/rss.xml
+    tags: [海洋测绘, 海洋, bathymetry, ocean]
+    enabled: false
+
+  # RSSHub 路由示例。公共实例的稳定性可能变化，确认可访问后再启用。
+  - id: rsshub_example
+    name: RSSHub 路由示例
+    type: rss
+    url: https://rsshub.app/example
+    tags: [测绘]
+    enabled: false
+
