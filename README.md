@@ -30,7 +30,7 @@ python src/geomatics_news.py run --no-translate
 
 ## 增加新闻源
 
-编辑 `config/sources.yaml`。当前配置包含中文海洋测绘、中文测绘、国际海洋测绘三个 GDELT 检索源，以及 NASA、ESA 官方 RSS。GDELT 是新闻聚合检索源，原文链接仍指向实际新闻网站。增加 HTML 源前先确认网站服务条款和 robots 规则。
+编辑 `config/sources.yaml`。当前配置包含中文海洋测绘、中文测绘、国际海洋测绘、国内高校与科研院所、国内大型媒体五个 GDELT 检索源，以及 NASA、ESA 官方 RSS。大型媒体检索覆盖央广网（cnr.cn）、今日头条（toutiao.com）、新华网、人民网、央视网和中国新闻网等域名。GDELT 是新闻聚合检索源，原文链接仍指向实际新闻网站；它不保证每个平台的每篇文章都能被收录。增加 HTML 源前先确认网站服务条款和 robots 规则。
 
 GDELT 接口有访问频率限制，程序会在多个检索源之间自动等待并对限流进行一次重试。
 

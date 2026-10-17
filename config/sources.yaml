@@ -34,6 +34,28 @@ sources:
     max_content_items: 5
     enabled: true
 
+  - id: gdelt_cn_university_research
+    name: GDELT 国内高校与科研院所测绘新闻
+    type: gdelt
+    query: '(domain:edu.cn OR domain:cas.cn OR domain:gov.cn) ("海洋测绘" OR "测绘" OR "水深" OR "激光雷达" OR "遥感" OR "北斗" OR "摄影测量")'
+    language: Chinese
+    required_terms: [海洋测绘, 测绘, 水深, 测深, 激光雷达, 遥感, 北斗, 摄影测量, 多波束]
+    tags: [国内高校, 科研院所, 测绘, 海洋测绘, 激光雷达]
+    max_items: 20
+    max_content_items: 6
+    enabled: true
+
+  - id: gdelt_cn_major_media
+    name: GDELT 国内大型媒体测绘科技新闻
+    type: gdelt
+    query: '(domain:cnr.cn OR domain:toutiao.com OR domain:news.cn OR domain:people.com.cn OR domain:cctv.com OR domain:chinanews.com.cn) ("海洋测绘" OR "测绘" OR "水深" OR "激光雷达" OR "遥感" OR "北斗" OR "卫星" OR "海洋")'
+    language: Chinese
+    required_terms: [海洋测绘, 测绘, 水深, 测深, 激光雷达, 遥感, 北斗, 卫星, 海洋, 多波束]
+    tags: [国内媒体, 央广网, 今日头条, 新华网, 人民网, 央视网, 测绘科技]
+    max_items: 20
+    max_content_items: 6
+    enabled: true
+
   - id: nasa_earth_observatory
     name: NASA Earth Observatory
     type: rss

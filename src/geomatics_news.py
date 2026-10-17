@@ -60,6 +60,7 @@ KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
 TRUSTED_SOURCE_HINTS = (
     "nasa", "noaa", "esa", "usgs", "iho", "isprs", "fig", "gov", "edu",
     "nature", "science", "xinhuanet", "people.com", "cctv", "mnr.gov.cn",
+    "cnr.cn", "toutiao.com", "news.cn", "chinanews.com.cn", "cas.cn",
 )
 
 
