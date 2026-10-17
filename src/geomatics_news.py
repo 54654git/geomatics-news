@@ -116,9 +116,10 @@ RESEARCH_GROUPS: dict[str, tuple[str, ...]] = {
 }
 
 POLICY_CONTEXT_TERMS: tuple[str, ...] = (
-    "十五五", "第十五个五年", "规划", "纲要", "方案", "行动计划", "战略",
-    "政策", "标准", "路线图", "重点任务", "海洋强国", "ocean decade", "strategy",
-    "strategic plan", "framework", "roadmap", "policy", "standard", "mission ocean",
+    "十五五", "第十五个五年", "规划", "纲要", "方案", "行动计划",
+    "海洋战略", "海洋强国",
+    "政策", "标准", "路线图", "重点任务", "ocean decade", "ocean strategy",
+    "strategic plan", "framework", "roadmap", "ocean policy", "standard", "mission ocean",
     "marine spatial planning", "s-100", "s-102",
 )
 
@@ -489,14 +490,18 @@ def matched_groups(text: str, groups: dict[str, tuple[str, ...]]) -> tuple[int, 
 def score_article(article: Article, now: datetime | None = None) -> Article:
     now = now or datetime.now(timezone.utc)
     body = f"{article.title} {article.summary} {article.content}"
+    # Long article bodies often contain related-news lists and footer text.
+    # Policy classification therefore uses the title and publisher summary,
+    # while technical/research classification can use the full body.
+    policy_body = f"{article.title} {article.summary}"
     total_hits = sum(keyword_hits(body, words) for words in KEYWORD_GROUPS.values())
     marine_hits = keyword_hits(body, KEYWORD_GROUPS["海洋测绘"])
-    policy_hits, policy_labels = matched_groups(body, POLICY_GROUPS)
+    policy_hits, policy_labels = matched_groups(policy_body, POLICY_GROUPS)
     # A broad phrase such as “海洋经济合作” is useful context but is not by
     # itself evidence of a national or international plan. Require a planning,
     # strategy, standards, or policy signal before putting an item in that
     # report section.
-    if policy_hits and not keyword_hits(body, POLICY_CONTEXT_TERMS):
+    if policy_hits and not keyword_hits(policy_body, POLICY_CONTEXT_TERMS):
         policy_hits, policy_labels = 0, []
     future_hits, future_labels = matched_groups(body, FUTURE_GROUPS)
     research_hits, research_labels = matched_groups(body, RESEARCH_GROUPS)

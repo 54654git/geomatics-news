@@ -155,7 +155,7 @@ class SourceTests(unittest.TestCase):
     def test_broad_ocean_economy_news_needs_policy_context(self):
         article = self.article(self.today)
         article.title = "滨海城市深化海洋经济合作"
-        article.summary = "港口和临港产业交流取得新进展"
+        article.summary = "港口和临港产业交流取得新进展，建立新的战略合作关系"
         g.score_article(article)
         self.assertEqual(article.policy_relevance, 0)
         self.assertNotIn("中国十五五与海洋强国", article.focus_tags)
