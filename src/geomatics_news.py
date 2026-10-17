@@ -115,6 +115,13 @@ RESEARCH_GROUPS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+POLICY_CONTEXT_TERMS: tuple[str, ...] = (
+    "十五五", "第十五个五年", "规划", "纲要", "方案", "行动计划", "战略",
+    "政策", "标准", "路线图", "重点任务", "海洋强国", "ocean decade", "strategy",
+    "strategic plan", "framework", "roadmap", "policy", "standard", "mission ocean",
+    "marine spatial planning", "s-100", "s-102",
+)
+
 TRUSTED_SOURCE_DOMAINS = (
     "nasa.gov", "noaa.gov", "esa.int", "usgs.gov", "iho.int", "isprs.org", "fig.net",
     "gov.cn", "edu.cn", "edu", "nature.com", "science.org", "xinhuanet.com",
@@ -485,6 +492,12 @@ def score_article(article: Article, now: datetime | None = None) -> Article:
     total_hits = sum(keyword_hits(body, words) for words in KEYWORD_GROUPS.values())
     marine_hits = keyword_hits(body, KEYWORD_GROUPS["海洋测绘"])
     policy_hits, policy_labels = matched_groups(body, POLICY_GROUPS)
+    # A broad phrase such as “海洋经济合作” is useful context but is not by
+    # itself evidence of a national or international plan. Require a planning,
+    # strategy, standards, or policy signal before putting an item in that
+    # report section.
+    if policy_hits and not keyword_hits(body, POLICY_CONTEXT_TERMS):
+        policy_hits, policy_labels = 0, []
     future_hits, future_labels = matched_groups(body, FUTURE_GROUPS)
     research_hits, research_labels = matched_groups(body, RESEARCH_GROUPS)
     article.relevance = min(1.0, total_hits / 8)

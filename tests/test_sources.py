@@ -152,6 +152,14 @@ class SourceTests(unittest.TestCase):
         self.assertIn("中国十五五与海洋强国", article.focus_tags)
         self.assertIn("智能无人测量", article.focus_tags)
 
+    def test_broad_ocean_economy_news_needs_policy_context(self):
+        article = self.article(self.today)
+        article.title = "滨海城市深化海洋经济合作"
+        article.summary = "港口和临港产业交流取得新进展"
+        g.score_article(article)
+        self.assertEqual(article.policy_relevance, 0)
+        self.assertNotIn("中国十五五与海洋强国", article.focus_tags)
+
     def test_report_contains_policy_and_future_sections(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
