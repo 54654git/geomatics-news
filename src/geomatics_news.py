@@ -1,8 +1,8 @@
 """Collect, score, translate and report geomatics news.
 
-The collector combines official RSS feeds with GDELT's public news search so
-that Chinese and marine-surveying coverage is not limited to a few foreign RSS
-sites. Translation is best-effort and never prevents a report from being made.
+Domestic coverage uses public news lists and official RSS directly. GDELT
+provides optional supplementary search. Translation is best-effort and never
+prevents a report from being made.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import html
+import json
 import logging
 import re
 import sqlite3
@@ -19,7 +20,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import urldefrag
+from urllib.parse import urldefrag, urljoin, urlsplit
+from lxml import html as lxml_html
+from lxml.etree import LxmlError
 
 import feedparser
 import requests
@@ -36,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "config" / "sources.yaml"
 DEFAULT_DB = ROOT / "data" / "news.db"
 DEFAULT_REPORT_DIR = ROOT / "reports"
-USER_AGENT = "geomatics-news-student-project/0.2 (+https://github.com/54654git/geomatics-news)"
+USER_AGENT = "geomatics-news-student-project/0.3 (+https://github.com/54654git/geomatics-news)"
 TRANSLATE_ENDPOINT = "https://translate.googleapis.com/translate_a/single"
 MYMEMORY_ENDPOINT = "https://api.mymemory.translated.net/get"
 GDELT_LAST_REQUEST = 0.0
@@ -57,11 +60,15 @@ KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
     "人工智能": ("artificial intelligence", "machine learning", "deep learning", "人工智能", "机器学习"),
 }
 
-TRUSTED_SOURCE_HINTS = (
-    "nasa", "noaa", "esa", "usgs", "iho", "isprs", "fig", "gov", "edu",
-    "nature", "science", "xinhuanet", "people.com", "cctv", "mnr.gov.cn",
-    "cnr.cn", "toutiao.com", "news.cn", "chinanews.com.cn", "cas.cn",
+TRUSTED_SOURCE_DOMAINS = (
+    "nasa.gov", "noaa.gov", "esa.int", "usgs.gov", "iho.int", "isprs.org", "fig.net",
+    "gov.cn", "edu.cn", "edu", "nature.com", "science.org", "xinhuanet.com",
+    "people.com.cn", "cctv.com", "cnr.cn", "news.cn", "chinanews.com.cn", "cas.cn",
 )
+
+
+class SourceError(RuntimeError):
+    """A source could not be read; distinct from a valid empty search."""
 
 
 @dataclass
@@ -135,6 +142,7 @@ def init_db(path: Path) -> sqlite3.Connection:
         if name not in columns:
             conn.execute(f"ALTER TABLE articles ADD COLUMN {name} TEXT DEFAULT ''")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at)")
+    conn.execute("CREATE TABLE IF NOT EXISTS collection_runs (id INTEGER PRIMARY KEY, checked_at TEXT NOT NULL, sources_json TEXT NOT NULL)")
     conn.commit()
     return conn
 
@@ -151,6 +159,126 @@ def clean_text(value: str | None) -> str:
 
 def has_chinese(text: str) -> bool:
     return bool(re.search(r"[\u3400-\u9fff]", text or ""))
+
+
+def normalized_date(value: str | None) -> str | None:
+    """Only accept complete dates; publication dates on Chinese sites use UTC+8."""
+    if not value:
+        return None
+    value = value.strip()
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        match = re.search(r"(20\d{2})[-年/.](\d{1,2})[-月/.](\d{1,2})", value)
+        if not match:
+            return None
+        try:
+            dt = datetime(*map(int, match.groups()))
+        except ValueError:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone(timedelta(hours=8)))
+    return dt.astimezone(timezone.utc).isoformat()
+
+
+def is_recent(article: Article, since_days: int) -> bool:
+    value = normalized_date(article.published_at)
+    if not value:
+        return False
+    dt = datetime.fromisoformat(value)
+    now = datetime.now(timezone.utc)
+    return now - timedelta(days=since_days) <= dt <= now
+
+
+def decode_page(response: requests.Response) -> str:
+    # Requests defaults to Latin-1 for text/html without an HTTP charset.
+    # Let the HTML meta declaration determine GB2312/UTF-8 instead.
+    content = response.content
+    match = re.search(br'charset\s*=\s*["\x27]?([a-zA-Z0-9_-]+)', content[:5000], re.I)
+    encoding = match.group(1).decode("ascii") if match else response.encoding or "utf-8"
+    if encoding.lower() in ("iso-8859-1", "latin-1"):
+        encoding = "utf-8"
+    if encoding.lower() in ("gb2312", "gbk"):
+        encoding = "gb18030"
+    return content.decode(encoding, errors="replace")
+
+
+def required_match(source: dict[str, Any], text: str) -> bool:
+    terms = source.get("required_terms", [])
+    return not terms or any(str(term).lower() in text.lower() for term in terms)
+
+
+def article_body(text: str) -> str:
+    tree = lxml_html.fromstring(text)
+    nodes = tree.xpath("//*[@id='content1' or @id='detailContent' or starts-with(@id,'vsb_content') "
+                       "or contains(concat(' ',normalize-space(@class),' '),' TRS_Editor ') "
+                       "or contains(concat(' ',normalize-space(@class),' '),' article-content ')]")
+    if nodes:
+        body = nodes[0]
+        for node in body.xpath(".//script | .//style | .//nav | .//iframe"):
+            node.drop_tree()
+        return clean_text(body.text_content())
+    return clean_text(extract_article(text, include_comments=False, include_tables=False) or "") if extract_article else ""
+
+
+def collect_html(source: dict[str, Any], session: requests.Session, fetch_content: bool,
+                 since_days: int) -> tuple[list[Article], list[str]]:
+    """Read bounded public news lists and verify dates on their article pages."""
+    response = session.get(source["url"], timeout=25)
+    response.raise_for_status()
+    tree = lxml_html.fromstring(decode_page(response))
+    candidates: dict[str, str] = {}
+    article_links = 0
+    allowed = source.get("allowed_domains", [urlsplit(source["url"]).hostname])
+    for link in tree.xpath(source.get("link_xpath", "//a[@href]")):
+        url = normalize_url(urljoin(source["url"], link.get("href", "")))
+        host = (urlsplit(url).hostname or "").lower()
+        if urlsplit(url).scheme not in ("https", "http") or not any(host == d or host.endswith("." + d) for d in allowed):
+            continue
+        if not re.search(source["article_url_pattern"], url):
+            continue
+        article_links += 1
+        title_nodes = link.xpath(".//strong | .//h5 | .//h4 | .//h2")
+        title = clean_text(link.get("title") or (title_nodes[0].text_content() if title_nodes else link.text_content()))
+        if len(title) < 6 or not required_match(source, title):
+            continue
+        candidates.setdefault(url, title)
+    if not article_links:
+        raise SourceError("页面没有预期的文章链接，可能发生改版或返回了验证页面")
+    articles: list[Article] = []
+    errors: list[str] = []
+    for url, title in list(candidates.items())[:int(source.get("max_items", 12))]:
+        time.sleep(float(source.get("request_interval", 1)))
+        try:
+            response = session.get(url, timeout=20)
+            response.raise_for_status()
+            text = decode_page(response)
+            detail = lxml_html.fromstring(text)
+            meta = {(node.get("name") or node.get("property") or "").lower(): node.get("content", "")
+                    for node in detail.xpath("//meta[@content]")}
+            date = next((normalized_date(meta[key]) for key in
+                         ("publishdate", "pubdate", "article:published_time", "date", "dc.date", "dcterms.created")
+                         if normalized_date(meta.get(key))), None)
+            if not date:
+                for node in detail.xpath(source.get("date_xpath", "//time | //*[@class='time'] | //*[@class='info']")):
+                    date = normalized_date(node.get("datetime") or node.text_content())
+                    if date:
+                        break
+            # Never substitute a footer year, URL date, or collection time for publication time.
+            summary = clean_text(meta.get("description") or meta.get("og:description"))
+            article = Article(source["id"], source.get("name", source["id"]), title, url,
+                              date, summary, "", list(source.get("tags", [])))
+            if not date:
+                errors.append(f"无法确认发布日期，已跳过：{url}")
+            if not is_recent(article, since_days):
+                continue
+            if fetch_content:
+                article.content = article_body(text)
+            article.content = article.content or summary
+            articles.append(article)
+        except (requests.RequestException, ValueError, LxmlError) as exc:
+            errors.append(f"{url}: {exc}")
+    return articles, errors
 
 
 def parse_date(entry: Any) -> str | None:
@@ -179,8 +307,8 @@ def fetch_article_content(url: str, session: requests.Session) -> str:
     try:
         response = session.get(url, timeout=20)
         response.raise_for_status()
-        return clean_text(extract_article(response.text, include_comments=False, include_tables=False) or "")
-    except requests.RequestException as exc:
+        return article_body(decode_page(response))
+    except (requests.RequestException, ValueError) as exc:
         logging.warning("正文抓取失败 %s: %s", url, exc)
         return ""
 
@@ -191,8 +319,9 @@ def collect_feed(source: dict[str, Any], session: requests.Session, fetch_conten
         response.raise_for_status()
         parsed = feedparser.parse(response.content)
     except requests.RequestException as exc:
-        logging.warning("RSS 新闻源访问失败 %s: %s", source["url"], exc)
-        return []
+        raise SourceError(str(exc)) from exc
+    if not parsed.entries:
+        raise SourceError("响应中没有 RSS 条目，入口可能已失效")
     if getattr(parsed, "bozo", False):
         logging.warning("RSS 解析存在格式问题 %s: %s", source["url"], getattr(parsed, "bozo_exception", ""))
     articles: list[Article] = []
@@ -202,36 +331,45 @@ def collect_feed(source: dict[str, Any], session: requests.Session, fetch_conten
         if not title or not url:
             continue
         summary = clean_text(entry.get("summary") or entry.get("description"))
+        if not required_match(source, title + " " + summary):
+            continue
         content = fetch_article_content(url, session) if fetch_content else summary
         articles.append(Article(source["id"], source.get("name", source["id"]), title, url,
                                 parse_date(entry), summary, content or summary, list(source.get("tags", []))))
     return articles
 
 
-def collect_gdelt(source: dict[str, Any], session: requests.Session, fetch_content: bool) -> list[Article]:
+def collect_gdelt(source: dict[str, Any], session: requests.Session, fetch_content: bool,
+                  since_days: int = 8) -> list[Article]:
     global GDELT_LAST_REQUEST
     delay = 5.2 - (time.monotonic() - GDELT_LAST_REQUEST)
     if delay > 0:
         time.sleep(delay)
     params = {
         "query": source["query"], "mode": "artlist", "format": "json",
-        "maxrecords": int(source.get("max_items", 20)), "timespan": "8d", "sort": "HybridRel",
+        "maxrecords": int(source.get("max_items", 20)), "timespan": f"{since_days}d", "sort": "HybridRel",
     }
     for attempt in range(2):
         try:
             response = session.get("https://api.gdeltproject.org/api/v2/doc/doc", params=params, timeout=35)
             GDELT_LAST_REQUEST = time.monotonic()
             if response.status_code == 429 and attempt == 0:
-                time.sleep(6)
+                retry_after = response.headers.get("Retry-After", "10")
+                delay = int(retry_after) if retry_after.isdigit() else 10
+                if delay > 30:
+                    raise SourceError(f"HTTP 429 限流，服务要求等待 {delay} 秒；本次跳过")
+                time.sleep(max(6, delay))
                 continue
             response.raise_for_status()
+            if not response.text.lstrip().startswith("{"):
+                raise SourceError("GDELT 返回非 JSON 响应：" + clean_text(response.text)[:160])
             payload = response.json()
+            if not isinstance(payload, dict) or not isinstance(payload.get("articles", []), list):
+                raise SourceError("GDELT 返回了不支持的数据结构")
             break
         except (requests.RequestException, ValueError) as exc:
             if attempt == 1:
-                logging.warning("GDELT 新闻源访问失败 %s", source.get("id"))
-                logging.debug("GDELT 错误详情：%s", exc)
-                return []
+                raise SourceError(str(exc)) from exc
     articles: list[Article] = []
     for index, item in enumerate(payload.get("articles", [])):
         title = clean_text(item.get("title"))
@@ -253,8 +391,16 @@ def collect_gdelt(source: dict[str, Any], session: requests.Session, fetch_conte
 
 
 def keyword_hits(text: str, words: Iterable[str]) -> int:
-    lowered = text.lower()
-    return sum(1 for word in words if word.lower() in lowered)
+    # The policy phrase 向海图强 does not mean nautical chart (海图).
+    lowered = text.lower().replace("向海图强", "海洋发展")
+    hits = 0
+    for word in words:
+        term = word.lower()
+        if term.isascii():
+            hits += bool(re.search(r"(?<![a-z0-9])" + re.escape(term) + r"(?![a-z0-9])", lowered))
+        else:
+            hits += term in lowered
+    return hits
 
 
 def score_article(article: Article, now: datetime | None = None) -> Article:
@@ -266,8 +412,8 @@ def score_article(article: Article, now: datetime | None = None) -> Article:
     # Source tags describe the feed, but must not make every unrelated article
     # look marine-relevant. The score is based on article text only.
     article.marine_relevance = min(1.0, marine_hits / 4)
-    source_text = f"{article.source_id} {article.source_name} {article.url}".lower()
-    article.source_score = 1.0 if any(hint in source_text for hint in TRUSTED_SOURCE_HINTS) else 0.70
+    host = (urlsplit(article.url).hostname or "").lower()
+    article.source_score = 1.0 if any(host == d or host.endswith("." + d) for d in TRUSTED_SOURCE_DOMAINS) else 0.70
     article.freshness = 0.5
     if article.published_at:
         try:
@@ -316,25 +462,43 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
     session = requests.Session()
     session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/atom+xml, application/json, text/html;q=0.9"})
     all_articles: list[Article] = []
+    statuses: list[dict[str, Any]] = []
     for source in sources:
         logging.info("采集 %s", source.get("name", source["id"]))
-        if source.get("type", "rss") == "gdelt":
-            all_articles.extend(collect_gdelt(source, session, fetch_content))
-        else:
-            all_articles.extend(collect_feed(source, session, fetch_content))
-    cutoff = datetime.now(timezone.utc) - timedelta(days=since_days)
+        status = {"id": source["id"], "name": source.get("name", source["id"]), "status": "正常",
+                  "candidates": 0, "recent": 0, "detail": ""}
+        try:
+            kind = source.get("type", "rss")
+            if kind == "gdelt":
+                items = collect_gdelt(source, session, fetch_content, since_days)
+            elif kind == "html":
+                items, errors = collect_html(source, session, fetch_content, since_days)
+                if errors:
+                    status.update(status="部分失败", detail="; ".join(errors[:2])[:250])
+                    logging.warning("来源部分失败 %s: %s", source["id"], status["detail"])
+            elif kind == "rss":
+                items = collect_feed(source, session, fetch_content)
+            else:
+                raise SourceError(f"不支持的新闻源类型：{kind}")
+            status["candidates"] = len(items)
+            status["recent"] = sum(is_recent(a, since_days) for a in items)
+            all_articles.extend(items)
+        except (SourceError, requests.RequestException, ValueError, LxmlError) as exc:
+            status.update(status="失败", detail=clean_text(str(exc))[:250])
+            logging.warning("新闻源失败 %s: %s", source["id"], exc)
+        statuses.append(status)
+        logging.info("来源结果 %s: %s，近期 %d 条", source["id"], status["status"], status["recent"])
     recent: list[Article] = []
     for article in all_articles:
         score_article(article)
-        if article.published_at:
-            try:
-                if datetime.fromisoformat(article.published_at.replace("Z", "+00:00")).astimezone(timezone.utc) < cutoff:
-                    continue
-            except ValueError:
-                pass
-        recent.append(article)
+        if is_recent(article, since_days):
+            article.published_at = normalized_date(article.published_at)
+            recent.append(article)
     conn = init_db(db)
     inserted = save_articles(conn, deduplicate(recent))
+    conn.execute("INSERT INTO collection_runs (checked_at, sources_json) VALUES (?, ?)",
+                 (datetime.now(timezone.utc).isoformat(), json.dumps(statuses, ensure_ascii=False)))
+    conn.commit()
     conn.close()
     logging.info("本次发现 %d 条，新增 %d 条", len(recent), inserted)
     return inserted
@@ -375,9 +539,9 @@ def rows_for_report(conn: sqlite3.Connection, since_days: int, limit: int) -> li
     return list(conn.execute(
         """SELECT *, (0.25 * relevance + 0.45 * marine_relevance + 0.15 * source_score + 0.15 * freshness) AS score
            FROM articles
-           WHERE collected_at >= ? AND (relevance >= 0.15 OR marine_relevance >= 0.15)
+           WHERE published_at >= ? AND published_at <= ? AND (relevance >= 0.15 OR marine_relevance >= 0.15)
            ORDER BY score DESC, published_at DESC LIMIT ?""",
-        (cutoff, limit),
+        (cutoff, datetime.now(timezone.utc).isoformat(), limit),
     ))
 
 
@@ -452,6 +616,14 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
 
     append_section("海洋测绘重点", marine)
     append_section("测绘与前沿技术", other)
+    last_run = conn.execute("SELECT checked_at, sources_json FROM collection_runs ORDER BY id DESC LIMIT 1").fetchone()
+    if last_run:
+        lines.extend(["## 新闻源采集状态", "", f"采集时间：{last_run['checked_at']}", "",
+                      "| 来源 | 状态 | 近期条数（入选前） | 说明 |", "| --- | --- | ---: | --- |"])
+        for status in json.loads(last_run["sources_json"]):
+            detail = status["detail"].replace("|", "/") or "已读取，仍需通过专业评分和去重"
+            lines.append(f"| {status['name']} | {status['status']} | {status['recent']} | {detail} |")
+        lines.extend(["", "“正常但 0 条”表示本次没有符合日期、关键词的条目；“失败”表示该来源覆盖不完整。条数不代表周报入选数量。", ""])
     output.write_text("\n".join(lines), encoding="utf-8")
     conn.close()
     return output

@@ -1,80 +1,266 @@
-# 新闻源配置。优先使用官方 RSS；检索型来源用于补足中文和海洋测绘资讯。
-# type: rss 使用 RSS/Atom；type: gdelt 使用 GDELT 公开新闻检索接口。
+# 国内来源直接读取公开列表页或官方 RSS，不依赖 GDELT。
+# GDELT 国内检索保留为可选备用；今日头条仅可间接检索，不保证覆盖。
 sources:
-  - id: gdelt_cn_marine
-    name: GDELT 中文海洋测绘新闻
-    type: gdelt
-    query: '("海洋测绘" OR "海道测量" OR "水深测量" OR "多波束测深" OR "声呐测深" OR "海底地形")'
-    language: Chinese
-    required_terms: [海洋测绘, 海道测量, 水深, 测深, 多波束, 声呐, 海底地形, 海图]
-    tags: [海洋测绘, 海洋, 水深测量, 多波束, 声呐]
-    max_items: 15
-    max_content_items: 5
-    enabled: true
-
-  - id: gdelt_cn_geomatics
-    name: GDELT 中文测绘与地理信息新闻
-    type: gdelt
-    query: '("测绘" OR "地理信息" OR "遥感" OR "北斗" OR "激光雷达" OR "摄影测量")'
-    language: Chinese
-    required_terms: [测绘, 地理信息, 遥感, 北斗, 激光雷达, 摄影测量]
-    tags: [测绘, 地理信息, 遥感, 北斗]
-    max_items: 15
-    max_content_items: 5
-    enabled: true
-
-  - id: gdelt_en_marine
-    name: GDELT 国际海洋测绘新闻
-    type: gdelt
-    query: '("hydrographic survey" OR bathymetry OR multibeam OR sonar OR "ocean mapping" OR AUV)'
-    language: English
-    required_terms: [hydrographic, bathymetry, multibeam, sonar, mapping, underwater, AUV, nautical chart]
-    tags: [海洋测绘, hydrographic survey, bathymetry, multibeam]
-    max_items: 15
-    max_content_items: 5
-    enabled: true
-
-  - id: gdelt_cn_university_research
-    name: GDELT 国内高校与科研院所测绘新闻
-    type: gdelt
-    query: '(domain:edu.cn OR domain:cas.cn OR domain:gov.cn) ("海洋测绘" OR "测绘" OR "水深" OR "激光雷达" OR "遥感" OR "北斗" OR "摄影测量")'
-    language: Chinese
-    required_terms: [海洋测绘, 测绘, 水深, 测深, 激光雷达, 遥感, 北斗, 摄影测量, 多波束]
-    tags: [国内高校, 科研院所, 测绘, 海洋测绘, 激光雷达]
-    max_items: 20
-    max_content_items: 6
-    enabled: true
-
-  - id: gdelt_cn_major_media
-    name: GDELT 国内大型媒体测绘科技新闻
-    type: gdelt
-    query: '(domain:cnr.cn OR domain:toutiao.com OR domain:news.cn OR domain:people.com.cn OR domain:cctv.com OR domain:chinanews.com.cn) ("海洋测绘" OR "测绘" OR "水深" OR "激光雷达" OR "遥感" OR "北斗" OR "卫星" OR "海洋")'
-    language: Chinese
-    required_terms: [海洋测绘, 测绘, 水深, 测深, 激光雷达, 遥感, 北斗, 卫星, 海洋, 多波束]
-    tags: [国内媒体, 央广网, 今日头条, 新华网, 人民网, 央视网, 测绘科技]
-    max_items: 20
-    max_content_items: 6
-    enabled: true
-
-  - id: nasa_earth_observatory
-    name: NASA Earth Observatory
-    type: rss
-    url: https://earthobservatory.nasa.gov/feeds/earth-observatory.rss
-    tags: [遥感, 地球观测, satellite, remote sensing]
-    max_items: 15
-    enabled: true
-
-  - id: esa_earth_observation
-    name: ESA Earth Observation
-    type: rss
-    url: https://www.esa.int/rssfeed/Our_Activities/Observing_the_Earth
-    tags: [遥感, 地球观测, satellite, remote sensing]
-    max_items: 15
-    enabled: true
-
-  - id: noaa_ocean_service
-    name: NOAA Ocean Service（暂不启用：需确认 RSS 地址）
-    type: rss
-    url: https://oceanservice.noaa.gov/rss.xml
-    tags: [海洋测绘, 海洋, bathymetry, ocean]
-    enabled: false
+- id: cnr_tech
+  name: 央广网·科技（直接采集）
+  type: html
+  url: https://www.cnr.cn/tech/techds/
+  article_url_pattern: /20\d{6}/t\d+_\d+\.shtml
+  allowed_domains:
+  - cnr.cn
+  required_terms: &id001
+  - 海洋测绘
+  - 海道测量
+  - 水深
+  - 测深
+  - 多波束
+  - 声呐
+  - 海底地形
+  - 海图
+  - 测绘
+  - 地理信息
+  - 遥感
+  - 北斗
+  - 激光雷达
+  - 摄影测量
+  - 卫星
+  - 点云
+  - 导航
+  - 南极
+  - 海洋信息
+  tags:
+  - 国内媒体
+  - 科技
+  max_items: 12
+  request_interval: 1
+  enabled: true
+- id: xinhua_tech
+  name: 新华网·科技（直接采集）
+  type: html
+  url: https://www.news.cn/tech/
+  article_url_pattern: /tech/20\d{6}/[a-zA-Z0-9]+/c\.html
+  allowed_domains:
+  - news.cn
+  - xinhuanet.com
+  required_terms: *id001
+  tags:
+  - 国内媒体
+  - 科技
+  max_items: 12
+  request_interval: 1
+  enabled: true
+- id: mnr_surveying
+  name: 自然资源部·测绘（直接采集）
+  type: html
+  url: https://www.mnr.gov.cn/dt/ch/
+  article_url_pattern: /20\d{4}/t\d+_\d+\.html
+  allowed_domains:
+  - mnr.gov.cn
+  required_terms: *id001
+  tags:
+  - 官方
+  - 测绘
+  max_items: 12
+  request_interval: 1
+  enabled: true
+- id: mnr_ocean
+  name: 自然资源部·海洋（直接采集）
+  type: html
+  url: https://www.mnr.gov.cn/dt/hy/
+  article_url_pattern: /20\d{4}/t\d+_\d+\.html
+  allowed_domains:
+  - mnr.gov.cn
+  required_terms: *id001
+  tags:
+  - 官方
+  - 海洋
+  max_items: 12
+  request_interval: 1
+  enabled: true
+- id: glut_news
+  name: 桂林理工大学·桂工要闻（直接采集）
+  type: html
+  url: https://www.glut.edu.cn/ggyw.htm
+  article_url_pattern: /info/1073/\d+\.htm
+  allowed_domains:
+  - glut.edu.cn
+  required_terms: *id001
+  tags:
+  - 高校
+  - 测绘科研
+  max_items: 12
+  request_interval: 1
+  enabled: true
+  date_xpath: //span[contains(text(),'发布时间')]
+- id: cas_research
+  name: 中国科学院·科研进展（直接采集）
+  type: html
+  url: https://www.cas.cn/syky/
+  article_url_pattern: /syky/20\d{4}/t\d+_\d+\.shtml
+  allowed_domains:
+  - cas.cn
+  required_terms: *id001
+  tags:
+  - 科研院所
+  - 科研进展
+  max_items: 12
+  request_interval: 1
+  enabled: true
+- id: chinanews_rss
+  name: 中国新闻网·即时新闻 RSS
+  type: rss
+  url: https://www.chinanews.com.cn/rss/scroll-news.xml
+  required_terms: *id001
+  tags:
+  - 国内媒体
+  max_items: 100
+  enabled: true
+- id: gdelt_cn_marine
+  name: GDELT 中文海洋测绘新闻（备用，默认关闭）
+  type: gdelt
+  query: ("海洋测绘" OR "海道测量" OR "水深测量" OR "多波束测深" OR "声呐测深" OR "海底地形")
+  language: Chinese
+  required_terms:
+  - 海洋测绘
+  - 海道测量
+  - 水深
+  - 测深
+  - 多波束
+  - 声呐
+  - 海底地形
+  - 海图
+  tags:
+  - 海洋测绘
+  - 海洋
+  - 水深测量
+  - 多波束
+  - 声呐
+  max_items: 15
+  max_content_items: 5
+  enabled: false
+- id: gdelt_cn_geomatics
+  name: GDELT 中文测绘与地理信息新闻（备用，默认关闭）
+  type: gdelt
+  query: ("测绘" OR "地理信息" OR "遥感" OR "北斗" OR "激光雷达" OR "摄影测量")
+  language: Chinese
+  required_terms:
+  - 测绘
+  - 地理信息
+  - 遥感
+  - 北斗
+  - 激光雷达
+  - 摄影测量
+  tags:
+  - 测绘
+  - 地理信息
+  - 遥感
+  - 北斗
+  max_items: 15
+  max_content_items: 5
+  enabled: false
+- id: gdelt_en_marine
+  name: GDELT 国际海洋测绘新闻
+  type: gdelt
+  query: ("hydrographic survey" OR bathymetry OR multibeam OR sonar OR "ocean mapping" OR AUV)
+  language: English
+  required_terms:
+  - hydrographic
+  - bathymetry
+  - multibeam
+  - sonar
+  - mapping
+  - underwater
+  - AUV
+  - nautical chart
+  tags:
+  - 海洋测绘
+  - hydrographic survey
+  - bathymetry
+  - multibeam
+  max_items: 15
+  max_content_items: 5
+  enabled: true
+- id: gdelt_cn_university_research
+  name: GDELT 国内高校与科研院所测绘新闻（备用，默认关闭）
+  type: gdelt
+  query: (domain:edu.cn OR domain:cas.cn OR domain:gov.cn) ("海洋测绘" OR "测绘" OR "水深" OR "激光雷达" OR "遥感" OR "北斗" OR "摄影测量")
+  language: Chinese
+  required_terms:
+  - 海洋测绘
+  - 测绘
+  - 水深
+  - 测深
+  - 激光雷达
+  - 遥感
+  - 北斗
+  - 摄影测量
+  - 多波束
+  tags:
+  - 国内高校
+  - 科研院所
+  - 测绘
+  - 海洋测绘
+  - 激光雷达
+  max_items: 20
+  max_content_items: 6
+  enabled: false
+- id: gdelt_cn_major_media
+  name: GDELT 国内大型媒体测绘科技新闻（备用，默认关闭）
+  type: gdelt
+  query: (domain:cnr.cn OR domain:toutiao.com OR domain:news.cn OR domain:people.com.cn OR domain:cctv.com OR domain:chinanews.com.cn) ("海洋测绘" OR "测绘" OR "水深" OR
+    "激光雷达" OR "遥感" OR "北斗" OR "卫星" OR "海洋")
+  language: Chinese
+  required_terms:
+  - 海洋测绘
+  - 测绘
+  - 水深
+  - 测深
+  - 激光雷达
+  - 遥感
+  - 北斗
+  - 卫星
+  - 海洋
+  - 多波束
+  tags:
+  - 国内媒体
+  - 央广网
+  - 今日头条
+  - 新华网
+  - 人民网
+  - 央视网
+  - 测绘科技
+  max_items: 20
+  max_content_items: 6
+  enabled: false
+- id: nasa_earth_observatory
+  name: NASA Earth Observatory（原 RSS 已失效，暂关闭）
+  type: rss
+  url: https://earthobservatory.nasa.gov/feeds/earth-observatory.rss
+  tags:
+  - 遥感
+  - 地球观测
+  - satellite
+  - remote sensing
+  max_items: 15
+  enabled: false
+- id: esa_earth_observation
+  name: ESA Earth Observation
+  type: rss
+  url: https://www.esa.int/rssfeed/Our_Activities/Observing_the_Earth
+  tags:
+  - 遥感
+  - 地球观测
+  - satellite
+  - remote sensing
+  max_items: 15
+  enabled: true
+- id: noaa_ocean_service
+  name: NOAA Ocean Service（暂不启用：需确认 RSS 地址）
+  type: rss
+  url: https://oceanservice.noaa.gov/rss.xml
+  tags:
+  - 海洋测绘
+  - 海洋
+  - bathymetry
+  - ocean
+  enabled: false
