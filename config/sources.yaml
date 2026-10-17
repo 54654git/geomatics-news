@@ -1,11 +1,45 @@
-# 公开 RSS/Atom 新闻源。可以复制条目继续添加来源。
-# type 可选 rss 或 html；第一版建议优先使用 rss。
+# 新闻源配置。优先使用官方 RSS；检索型来源用于补足中文和海洋测绘资讯。
+# type: rss 使用 RSS/Atom；type: gdelt 使用 GDELT 公开新闻检索接口。
 sources:
+  - id: gdelt_cn_marine
+    name: GDELT 中文海洋测绘新闻
+    type: gdelt
+    query: '("海洋测绘" OR "海道测量" OR "水深测量" OR "多波束测深" OR "声呐测深" OR "海底地形")'
+    language: Chinese
+    required_terms: [海洋测绘, 海道测量, 水深, 测深, 多波束, 声呐, 海底地形, 海图]
+    tags: [海洋测绘, 海洋, 水深测量, 多波束, 声呐]
+    max_items: 15
+    max_content_items: 5
+    enabled: true
+
+  - id: gdelt_cn_geomatics
+    name: GDELT 中文测绘与地理信息新闻
+    type: gdelt
+    query: '("测绘" OR "地理信息" OR "遥感" OR "北斗" OR "激光雷达" OR "摄影测量")'
+    language: Chinese
+    required_terms: [测绘, 地理信息, 遥感, 北斗, 激光雷达, 摄影测量]
+    tags: [测绘, 地理信息, 遥感, 北斗]
+    max_items: 15
+    max_content_items: 5
+    enabled: true
+
+  - id: gdelt_en_marine
+    name: GDELT 国际海洋测绘新闻
+    type: gdelt
+    query: '("hydrographic survey" OR bathymetry OR multibeam OR sonar OR "ocean mapping" OR AUV)'
+    language: English
+    required_terms: [hydrographic, bathymetry, multibeam, sonar, mapping, underwater, AUV, nautical chart]
+    tags: [海洋测绘, hydrographic survey, bathymetry, multibeam]
+    max_items: 15
+    max_content_items: 5
+    enabled: true
+
   - id: nasa_earth_observatory
     name: NASA Earth Observatory
     type: rss
     url: https://earthobservatory.nasa.gov/feeds/earth-observatory.rss
     tags: [遥感, 地球观测, satellite, remote sensing]
+    max_items: 15
     enabled: true
 
   - id: esa_earth_observation
@@ -13,20 +47,12 @@ sources:
     type: rss
     url: https://www.esa.int/rssfeed/Our_Activities/Observing_the_Earth
     tags: [遥感, 地球观测, satellite, remote sensing]
+    max_items: 15
     enabled: true
 
   - id: noaa_ocean_service
-    name: NOAA Ocean Service（需按网站实际情况确认 RSS）
+    name: NOAA Ocean Service（暂不启用：需确认 RSS 地址）
     type: rss
     url: https://oceanservice.noaa.gov/rss.xml
     tags: [海洋测绘, 海洋, bathymetry, ocean]
     enabled: false
-
-  # RSSHub 路由示例。公共实例的稳定性可能变化，确认可访问后再启用。
-  - id: rsshub_example
-    name: RSSHub 路由示例
-    type: rss
-    url: https://rsshub.app/example
-    tags: [测绘]
-    enabled: false
-
