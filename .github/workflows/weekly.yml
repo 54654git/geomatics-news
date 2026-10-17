@@ -9,12 +9,20 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: weekly-geomatics-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   collect-and-report:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Re-runs must collect with the latest source configuration and database.
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,11 +36,38 @@ jobs:
       - name: Collect, score and report
         run: python src/geomatics_news.py run --since-days 8 --limit 30
 
+      - name: Save report and database as downloadable backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: geomatics-news-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            reports/
+            data/news.db
+          retention-days: 30
+
       - name: Commit weekly report and database
+        env:
+          REPORT_BRANCH: ${{ github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data reports
-          git diff --cached --quiet || git commit -m "chore: update weekly geomatics news"
-          git push
+          if git diff --cached --quiet; then
+            echo "No report changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: update weekly geomatics news"
+          for attempt in 1 2 3; do
+            git fetch origin "$REPORT_BRANCH"
+            if ! git rebase "origin/$REPORT_BRANCH"; then
+              git rebase --abort
+              echo "Concurrent data edits conflict. Download the report backup from this run."
+              exit 1
+            fi
+            if git push origin "HEAD:refs/heads/$REPORT_BRANCH"; then
+              exit 0
+            fi
+          done
+          echo "Could not upload after 3 attempts. Download the report backup from this run."
+          exit 1
 
