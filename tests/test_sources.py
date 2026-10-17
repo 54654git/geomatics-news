@@ -142,6 +142,34 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(g.keyword_hits("registration", ["gis"]), 0)
         self.assertEqual(g.keyword_hits("GIS and GNSS", ["gis", "gnss"]), 2)
 
+    def test_policy_and_future_direction_scores_are_separate(self):
+        article = self.article(self.today)
+        article.title = "十五五海洋强国与S-100数字水深规划"
+        article.summary = "无人船多波束测深和数字孪生海洋数据标准"
+        g.score_article(article)
+        self.assertGreaterEqual(article.policy_relevance, 0.5)
+        self.assertGreaterEqual(article.future_relevance, 0.5)
+        self.assertIn("中国十五五与海洋强国", article.focus_tags)
+        self.assertIn("智能无人测量", article.focus_tags)
+
+    def test_report_contains_policy_and_future_sections(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            conn = g.init_db(root / "news.db")
+            policy = self.article(self.today)
+            policy.title = "十五五海洋强国规划发布"
+            policy.summary = "海洋科技与海洋观测重点任务"
+            future = self.article(self.today)
+            future.title = "无人船多波束水深测量新技术"
+            future.summary = "点云算法和精度验证"
+            g.save_articles(conn, [g.score_article(policy), g.score_article(future)])
+            conn.close()
+            report = g.make_report(root / "news.db", root / "reports", 8, 30, False).read_text(encoding="utf-8")
+            self.assertIn("十五五与国际海洋规划信号", report)
+            self.assertIn("未来海洋测绘技术", report)
+            self.assertIn("规划", report)
+            self.assertIn("未来技术", report)
+
 
 if __name__ == "__main__":
     unittest.main()

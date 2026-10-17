@@ -60,6 +60,61 @@ KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
     "人工智能": ("artificial intelligence", "machine learning", "deep learning", "人工智能", "机器学习"),
 }
 
+# These groups turn the user's long-term study question into transparent,
+# inspectable rules.  They are deliberately keyword based so that the weekly
+# report remains reproducible without an external model or API key.
+POLICY_GROUPS: dict[str, tuple[str, ...]] = {
+    "中国十五五与海洋强国": (
+        "十五五", "第十五个五年", "海洋强国", "海洋经济", "海洋科技",
+        "海洋资源", "海洋生态", "海洋安全", "海洋观测", "海岸带",
+        "深海", "海岛", "蓝色经济", "海洋战略",
+    ),
+    "国际海洋规划与标准": (
+        "ocean decade", "un decade of ocean science", "联合国海洋科学十年",
+        "iho", "s-100", "s-102", "seabed 2030", "gebco", "emodnet",
+        "digital twin ocean", "mission ocean", "blue economy",
+        "marine spatial planning", "ocean mapping strategy", "hydrographic strategy",
+    ),
+}
+
+FUTURE_GROUPS: dict[str, tuple[str, ...]] = {
+    "智能无人测量": (
+        "无人船", "无人艇", "自主航行", "自主测量", "无人测绘", "auv", "usv", "uuv",
+        "autonomous surface vessel", "autonomous underwater vehicle", "robotic survey",
+    ),
+    "激光与声学测深": (
+        "水深激光雷达", "激光雷达测深", "bathymetric lidar", "bathymetry", "水深测量",
+        "多波束", "multibeam", "声呐", "sonar", "海底地形", "seafloor mapping",
+    ),
+    "遥感与多源融合": (
+        "遥感", "卫星测深", "remote sensing", "earth observation", "data fusion",
+        "多源融合", "激光雷达", "点云", "point cloud", "gnss/ins", "北斗融合",
+    ),
+    "智能算法与数字孪生": (
+        "人工智能", "机器学习", "深度学习", "machine learning", "deep learning",
+        "数字孪生", "digital twin", "时空大数据", "水下三维", "智能解译",
+    ),
+    "数据标准与精度控制": (
+        "s-100", "s-102", "数字水深", "海图标准", "质量控制", "精度评定", "误差",
+        "不确定度", "标准化", "dataset", "accuracy assessment", "uncertainty",
+    ),
+    "国产装备与工程化": (
+        "国产化", "自主可控", "自主知识产权", "中试", "产业化", "工程化",
+        "海洋装备", "测绘装备", "prototype", "commercialization",
+    ),
+}
+
+RESEARCH_GROUPS: dict[str, tuple[str, ...]] = {
+    "可复现实验与数据": (
+        "数据集", "数据处理", "算法", "实验", "验证", "精度", "误差", "论文", "专利",
+        "dataset", "algorithm", "experiment", "validation", "accuracy", "benchmark",
+    ),
+    "传感器与系统集成": (
+        "传感器", "激光器", "回波", "光学收发", "信号采集", "组合导航", "系统集成",
+        "sensor", "laser", "echo", "signal acquisition", "system integration",
+    ),
+}
+
 TRUSTED_SOURCE_DOMAINS = (
     "nasa.gov", "noaa.gov", "esa.int", "usgs.gov", "iho.int", "isprs.org", "fig.net",
     "gov.cn", "edu.cn", "edu", "nature.com", "science.org", "xinhuanet.com",
@@ -85,6 +140,10 @@ class Article:
     summary_zh: str = ""
     relevance: float = 0.0
     marine_relevance: float = 0.0
+    policy_relevance: float = 0.0
+    future_relevance: float = 0.0
+    research_relevance: float = 0.0
+    focus_tags: list[str] | None = None
     source_score: float = 0.0
     freshness: float = 0.0
 
@@ -132,15 +191,21 @@ def init_db(path: Path) -> sqlite3.Connection:
             tags TEXT NOT NULL,
             relevance REAL NOT NULL DEFAULT 0,
             marine_relevance REAL NOT NULL DEFAULT 0,
+            policy_relevance REAL NOT NULL DEFAULT 0,
+            future_relevance REAL NOT NULL DEFAULT 0,
+            research_relevance REAL NOT NULL DEFAULT 0,
+            focus_tags TEXT NOT NULL DEFAULT '[]',
             source_score REAL NOT NULL DEFAULT 0,
             freshness REAL NOT NULL DEFAULT 0,
             collected_at TEXT NOT NULL
         )"""
     )
     columns = {row[1] for row in conn.execute("PRAGMA table_info(articles)")}
-    for name in ("title_zh", "summary_zh"):
+    for name in ("title_zh", "summary_zh", "policy_relevance", "future_relevance", "research_relevance", "focus_tags"):
         if name not in columns:
-            conn.execute(f"ALTER TABLE articles ADD COLUMN {name} TEXT DEFAULT ''")
+            column_type = "REAL" if name.endswith("relevance") else "TEXT"
+            default = "0" if column_type == "REAL" else "'[]'"
+            conn.execute(f"ALTER TABLE articles ADD COLUMN {name} {column_type} DEFAULT {default}")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at)")
     conn.execute("CREATE TABLE IF NOT EXISTS collection_runs (id INTEGER PRIMARY KEY, checked_at TEXT NOT NULL, sources_json TEXT NOT NULL)")
     conn.commit()
@@ -403,15 +468,33 @@ def keyword_hits(text: str, words: Iterable[str]) -> int:
     return hits
 
 
+def matched_groups(text: str, groups: dict[str, tuple[str, ...]]) -> tuple[int, list[str]]:
+    """Return the number of matched groups and human-readable focus labels."""
+    hits = 0
+    labels: list[str] = []
+    for label, words in groups.items():
+        if keyword_hits(text, words):
+            hits += 1
+            labels.append(label)
+    return hits, labels
+
+
 def score_article(article: Article, now: datetime | None = None) -> Article:
     now = now or datetime.now(timezone.utc)
     body = f"{article.title} {article.summary} {article.content}"
     total_hits = sum(keyword_hits(body, words) for words in KEYWORD_GROUPS.values())
     marine_hits = keyword_hits(body, KEYWORD_GROUPS["海洋测绘"])
+    policy_hits, policy_labels = matched_groups(body, POLICY_GROUPS)
+    future_hits, future_labels = matched_groups(body, FUTURE_GROUPS)
+    research_hits, research_labels = matched_groups(body, RESEARCH_GROUPS)
     article.relevance = min(1.0, total_hits / 8)
     # Source tags describe the feed, but must not make every unrelated article
     # look marine-relevant. The score is based on article text only.
     article.marine_relevance = min(1.0, marine_hits / 4)
+    article.policy_relevance = min(1.0, policy_hits / 2)
+    article.future_relevance = min(1.0, future_hits / 3)
+    article.research_relevance = min(1.0, research_hits / 2)
+    article.focus_tags = policy_labels + future_labels + research_labels
     host = (urlsplit(article.url).hostname or "").lower()
     article.source_score = 1.0 if any(host == d or host.endswith("." + d) for d in TRUSTED_SOURCE_DOMAINS) else 0.70
     article.freshness = 0.5
@@ -426,7 +509,15 @@ def score_article(article: Article, now: datetime | None = None) -> Article:
 
 
 def total_score(article: Article) -> float:
-    return 0.25 * article.relevance + 0.45 * article.marine_relevance + 0.15 * article.source_score + 0.15 * article.freshness
+    return (
+        0.10 * article.relevance
+        + 0.25 * article.marine_relevance
+        + 0.20 * article.policy_relevance
+        + 0.25 * article.future_relevance
+        + 0.10 * article.research_relevance
+        + 0.05 * article.source_score
+        + 0.05 * article.freshness
+    )
 
 
 def deduplicate(articles: list[Article]) -> list[Article]:
@@ -445,11 +536,14 @@ def save_articles(conn: sqlite3.Connection, articles: Iterable[Article]) -> int:
         result = conn.execute(
             """INSERT OR IGNORE INTO articles
             (fingerprint, source_id, source_name, title, url, published_at, summary, content,
-             title_zh, summary_zh, tags, relevance, marine_relevance, source_score, freshness, collected_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             title_zh, summary_zh, tags, relevance, marine_relevance, policy_relevance,
+             future_relevance, research_relevance, focus_tags, source_score, freshness, collected_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (article.fingerprint, article.source_id, article.source_name, article.title, article.url,
              article.published_at, article.summary, article.content, article.title_zh, article.summary_zh,
              yaml.safe_dump(article.tags, allow_unicode=True), article.relevance, article.marine_relevance,
+             article.policy_relevance, article.future_relevance, article.research_relevance,
+             yaml.safe_dump(article.focus_tags or [], allow_unicode=True),
              article.source_score, article.freshness, now),
         )
         count += int(result.rowcount > 0)
@@ -537,9 +631,16 @@ def translate_text(text: str, session: requests.Session, cache: dict[str, str]) 
 def rows_for_report(conn: sqlite3.Connection, since_days: int, limit: int) -> list[sqlite3.Row]:
     cutoff = (datetime.now(timezone.utc) - timedelta(days=since_days)).isoformat()
     return list(conn.execute(
-        """SELECT *, (0.25 * relevance + 0.45 * marine_relevance + 0.15 * source_score + 0.15 * freshness) AS score
+        """SELECT *, (
+             0.10 * relevance + 0.25 * marine_relevance + 0.20 * policy_relevance
+             + 0.25 * future_relevance + 0.10 * research_relevance
+             + 0.05 * source_score + 0.05 * freshness
+           ) AS score
            FROM articles
-           WHERE published_at >= ? AND published_at <= ? AND (relevance >= 0.15 OR marine_relevance >= 0.15)
+           WHERE published_at >= ? AND published_at <= ? AND (
+             relevance >= 0.15 OR marine_relevance >= 0.15 OR policy_relevance >= 0.15
+             OR future_relevance >= 0.15 OR research_relevance >= 0.15
+           )
            ORDER BY score DESC, published_at DESC LIMIT ?""",
         (cutoff, datetime.now(timezone.utc).isoformat(), limit),
     ))
@@ -557,8 +658,13 @@ def recalculate_scores(conn: sqlite3.Connection) -> None:
                           row["published_at"], row["summary"] or "", row["content"] or "", tags)
         score_article(article)
         conn.execute(
-            "UPDATE articles SET relevance = ?, marine_relevance = ?, source_score = ?, freshness = ? WHERE id = ?",
-            (article.relevance, article.marine_relevance, article.source_score, article.freshness, row["id"]),
+            """UPDATE articles SET relevance = ?, marine_relevance = ?, policy_relevance = ?,
+               future_relevance = ?, research_relevance = ?, focus_tags = ?,
+               source_score = ?, freshness = ? WHERE id = ?""",
+            (article.relevance, article.marine_relevance, article.policy_relevance,
+             article.future_relevance, article.research_relevance,
+             yaml.safe_dump(article.focus_tags or [], allow_unicode=True),
+             article.source_score, article.freshness, row["id"]),
         )
     conn.commit()
 
@@ -573,9 +679,16 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
     translator = requests.Session()
     translator.headers.update({"User-Agent": USER_AGENT})
     cache: dict[str, str] = {}
-    marine = [row for row in rows if row["marine_relevance"] >= 0.15]
-    other = [row for row in rows if row["marine_relevance"] < 0.15]
-    lines = [f"# 测绘与海洋测绘新闻周报（{date_text}）", "", f"> 最近 {since_days} 天；海洋测绘相关度权重已提高。英文标题和摘要会尽量附中文翻译。", ""]
+    policy = [row for row in rows if row["policy_relevance"] >= 0.25]
+    future = [row for row in rows if row["policy_relevance"] < 0.25 and row["future_relevance"] >= 0.25]
+    research = [row for row in rows if row["policy_relevance"] < 0.25 and row["future_relevance"] < 0.25 and row["research_relevance"] >= 0.25]
+    marine = [row for row in rows if row["policy_relevance"] < 0.25 and row["future_relevance"] < 0.25 and row["research_relevance"] < 0.25 and row["marine_relevance"] >= 0.15]
+    other = [row for row in rows if row not in policy + future + research + marine]
+    lines = [
+        f"# 测绘与海洋测绘新闻周报（{date_text}）", "",
+        f"> 最近 {since_days} 天；本周报按海洋测绘、十五五/国际规划、未来技术和科研价值筛选。",
+        "> 规划关键词用于发现政策信号，不能替代对原始规划文件的正式解读。", "",
+    ]
     if not rows:
         lines.append("本周期没有采集到新闻。可以检查 GDELT/RSS 新闻源是否可访问。\n")
 
@@ -603,17 +716,34 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
             summary_zh = cached_summary_zh or (translate_text(summary, translator, cache) if translate else summary)
             conn.execute("UPDATE articles SET title_zh = ?, summary_zh = ? WHERE id = ?", (title_zh, summary_zh, row["id"]))
             tags = ", ".join(yaml.safe_load(row["tags"]) or [])
+            try:
+                focus_tags = ", ".join(yaml.safe_load(row["focus_tags"]) or [])
+            except yaml.YAMLError:
+                focus_tags = ""
+            if not focus_tags:
+                focus_tags = "常规测绘新闻"
+            if row["policy_relevance"] >= 0.25:
+                study_hint = "先保存政策原文，记录目标、时间表、重点工程和对海洋测绘的需求。"
+            elif row["future_relevance"] >= 0.25:
+                study_hint = "记录传感器、数据源、算法、坐标基准、误差指标和可复现实验入口。"
+            elif row["research_relevance"] >= 0.25:
+                study_hint = "优先提取论文、数据集、实验方法和精度评价，作为课程项目或论文复现线索。"
+            else:
+                study_hint = "判断它是否能转化为公开数据分析、算法复现或海洋测量案例。"
             lines.extend([
                 f"### {index}. {title_zh}", "",
                 f"- 原标题：{row['title']}", f"- 来源：{row['source_name']}",
                 f"- 日期：{row['published_at'] or '未知'}",
-                f"- 评分：{row['score']:.3f}（测绘 {row['relevance']:.2f}，海洋测绘 {row['marine_relevance']:.2f}）",
-                f"- 标签：{tags or '待分类'}", f"- 原文：[{row['url']}]({row['url']})", "",
+                f"- 评分：{row['score']:.3f}（海洋测绘 {row['marine_relevance']:.2f}，规划 {row['policy_relevance']:.2f}，未来技术 {row['future_relevance']:.2f}，科研价值 {row['research_relevance']:.2f}）",
+                f"- 方向标签：{focus_tags}", f"- 来源标签：{tags or '待分类'}", f"- 原文：[{row['url']}]({row['url']})", "",
                 f"**中文摘要：** {summary_zh}", f"**原文摘要：** {summary}", "",
-                "**学习提示：** 重点记录数据源、传感器、坐标参考系、误差来源、算法和可复现数据集。", "",
+                f"**面向保研的学习提示：** {study_hint}", "",
             ])
         conn.commit()
 
+    append_section("十五五与国际海洋规划信号", policy)
+    append_section("未来海洋测绘技术", future)
+    append_section("科研与保研高价值线索", research)
     append_section("海洋测绘重点", marine)
     append_section("测绘与前沿技术", other)
     last_run = conn.execute("SELECT checked_at, sources_json FROM collection_runs ORDER BY id DESC LIMIT 1").fetchone()

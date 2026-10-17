@@ -28,6 +28,18 @@ sources:
   - 导航
   - 南极
   - 海洋信息
+  - 十五五
+  - 海洋强国
+  - 海洋经济
+  - 海洋科技
+  - 海洋生态
+  - 海洋观测
+  - 海岸带
+  - 数字孪生
+  - 无人船
+  - AUV
+  - S-100
+  - S-102
   tags:
   - 国内媒体
   - 科技
@@ -178,6 +190,30 @@ sources:
   - bathymetry
   - multibeam
   max_items: 15
+  max_content_items: 5
+  enabled: true
+- id: gdelt_en_ocean_policy
+  name: GDELT 国际海洋规划与标准新闻
+  type: gdelt
+  query: ("Ocean Decade" OR "UN Decade of Ocean Science" OR "IHO S-100" OR "S-102" OR "Seabed 2030" OR GEBCO OR EMODnet OR "Digital Twin Ocean" OR "blue economy" OR "marine spatial planning")
+  language: English
+  required_terms:
+  - Ocean Decade
+  - IHO
+  - S-100
+  - S-102
+  - Seabed 2030
+  - GEBCO
+  - EMODnet
+  - Digital Twin Ocean
+  - blue economy
+  - marine spatial planning
+  tags:
+  - 国际规划
+  - 海洋标准
+  - 海洋测绘
+  - 未来方向
+  max_items: 12
   max_content_items: 5
   enabled: true
 - id: gdelt_cn_university_research
