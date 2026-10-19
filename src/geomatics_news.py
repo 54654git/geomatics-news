@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.parse import urldefrag, urljoin, urlsplit
+from urllib.parse import urldefrag, urljoin, urlsplit, parse_qsl, urlencode, urlunsplit
 from zoneinfo import ZoneInfo
 from lxml import html as lxml_html
 from lxml.etree import LxmlError
@@ -132,7 +132,7 @@ TRUSTED_SOURCE_DOMAINS = (
     "nasa.gov", "noaa.gov", "esa.int", "usgs.gov", "iho.int", "isprs.org", "fig.net",
     "gov.cn", "edu.cn", "edu", "nature.com", "science.org", "xinhuanet.com",
     "people.com.cn", "cctv.com", "cnr.cn", "news.cn", "chinanews.com.cn", "cas.cn",
-    "nmdis.org.cn", "gebco.net",
+    "nmdis.org.cn", "gebco.net", "fio.org.cn", "seabed2030.org",
 )
 
 
@@ -173,6 +173,7 @@ class Article:
     focus_tags: list[str] | None = None
     source_score: float = 0.0
     freshness: float = 0.0
+    content_type: str = "行业资讯"
 
     @property
     def fingerprint(self) -> str:
@@ -228,19 +229,25 @@ def init_db(path: Path) -> sqlite3.Connection:
         )"""
     )
     columns = {row[1] for row in conn.execute("PRAGMA table_info(articles)")}
-    for name in ("title_zh", "summary_zh", "policy_relevance", "future_relevance", "research_relevance", "focus_tags"):
+    for name in ("title_zh", "summary_zh", "policy_relevance", "future_relevance", "research_relevance", "focus_tags", "content_type"):
         if name not in columns:
             column_type = "REAL" if name.endswith("relevance") else "TEXT"
             default = "0" if column_type == "REAL" else "'[]'"
             conn.execute(f"ALTER TABLE articles ADD COLUMN {name} {column_type} DEFAULT {default}")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at)")
     conn.execute("CREATE TABLE IF NOT EXISTS collection_runs (id INTEGER PRIMARY KEY, checked_at TEXT NOT NULL, sources_json TEXT NOT NULL)")
+    if "config_hash" not in {row[1] for row in conn.execute("PRAGMA table_info(collection_runs)")}:
+        conn.execute("ALTER TABLE collection_runs ADD COLUMN config_hash TEXT DEFAULT ''")
+    conn.execute("CREATE TABLE IF NOT EXISTS report_items (report_date TEXT NOT NULL, url TEXT NOT NULL, title TEXT NOT NULL, PRIMARY KEY(report_date, url))")
     conn.commit()
     return conn
 
 
 def normalize_url(url: str) -> str:
-    return urldefrag((url or "").strip())[0]
+    parts = urlsplit(urldefrag((url or "").strip())[0])
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+             if not k.lower().startswith("utm_") and k.lower() not in ("fbclid", "gclid")]
+    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path, urlencode(query), ""))
 
 
 def clean_text(value: str | None) -> str:
@@ -305,13 +312,16 @@ def article_body(text: str) -> str:
     nodes = tree.xpath("//*[@id='content1' or @id='detailContent' or starts-with(@id,'vsb_content') "
                        "or contains(concat(' ',normalize-space(@class),' '),' TRS_Editor ') "
                        "or contains(concat(' ',normalize-space(@class),' '),' bodytext ') "
+                       "or contains(concat(' ',normalize-space(@class),' '),' myart ') "
                        "or contains(concat(' ',normalize-space(@class),' '),' entry-content ') "
                        "or contains(concat(' ',normalize-space(@class),' '),' article-content ')]")
     if nodes:
         body = nodes[0]
         for node in body.xpath(".//script | .//style | .//nav | .//iframe"):
             node.drop_tree()
-        return clean_text(body.text_content())
+        resources = [a.get("href", "") for a in body.xpath(".//a[@href]")
+                     if re.match(r"https?://(?:doi\.org|github\.com|zenodo\.org|figshare\.com|[^/]*pangaea\.de)/", a.get("href", ""))]
+        return clean_text(body.text_content()) + (" 资源链接：" + " ".join(dict.fromkeys(resources)) if resources else "")
     return clean_text(extract_article(text, include_comments=False, include_tables=False) or "") if extract_article else ""
 
 
@@ -517,6 +527,46 @@ def matched_groups(text: str, groups: dict[str, tuple[str, ...]]) -> tuple[int, 
     return hits, labels
 
 
+def classify_content(article: Article) -> str:
+    """Conservative discovery labels, never a verification of the underlying claim."""
+    lead = f"{article.title} {article.summary}"
+    if keyword_hits(article.title, ("market worth", "market size", "market forecast", "marketsandmarkets",
+                                    "市场规模", "市场预测", "复合年增长率", "市场报告")):
+        return "商业市场资讯"
+    if keyword_hits(lead, ("发表论文", "发表了论文", "论文", "研究成果", "研究进展", "研究方面取得",
+                          "published in", "research paper", "peer-reviewed", "journal")):
+        return "科研成果线索"
+    if keyword_hits(lead, ("数据集", "开源", "数据发布", "dataset", "open-source", "data release")):
+        return "数据与代码线索"
+    document = keyword_hits(article.title, ("规划", "纲要", "行动计划", "实施方案", "战略", "标准",
+                                            "strategic plan", "strategy", "roadmap", "standard", "s-100", "s-102"))
+    issued = keyword_hits(article.title, ("发布", "印发", "出台", "批准", "实施", "生效", "颁布",
+                                        "launch", "launched", "adopted", "approved", "released", "enters into force"))
+    host = (urlsplit(article.url).hostname or "").lower()
+    official = any(host == d or host.endswith("." + d) for d in
+                   ("gov.cn", "noaa.gov", "iho.int", "unesco.org", "europa.eu", "nmdis.org.cn"))
+    if document and issued:
+        return "官方政策与标准发布线索" if official else "政策与标准报道"
+    if keyword_hits(lead, ("survey", "mapping", "测量", "测绘", "测深", "水深", "海图")):
+        return "技术与工程进展"
+    return "行业资讯"
+
+
+def policy_focus(article: Article) -> list[str]:
+    if article.content_type not in ("官方政策与标准发布线索", "政策与标准报道"):
+        return []
+    text = f"{article.title} {article.summary}"
+    labels = []
+    ocean = keyword_hits(text, POLICY_GROUPS["中国十五五与海洋强国"] + KEYWORD_GROUPS["海洋测绘"])
+    if ocean and keyword_hits(text, ("十五五", "第十五个五年")):
+        labels.append("中国十五五（原文提及）")
+    elif ocean and has_chinese(article.title):
+        labels.append("国内海洋政策与标准")
+    if keyword_hits(text, POLICY_GROUPS["国际海洋规划与标准"]):
+        labels.append("国际海洋规划与标准")
+    return labels
+
+
 def score_article(article: Article, now: datetime | None = None) -> Article:
     now = now or datetime.now(timezone.utc)
     body = f"{article.title} {article.summary} {article.content}"
@@ -526,7 +576,9 @@ def score_article(article: Article, now: datetime | None = None) -> Article:
     policy_body = f"{article.title} {article.summary}"
     total_hits = sum(keyword_hits(body, words) for words in KEYWORD_GROUPS.values())
     marine_hits = keyword_hits(body, KEYWORD_GROUPS["海洋测绘"])
-    policy_hits, policy_labels = matched_groups(policy_body, POLICY_GROUPS)
+    article.content_type = classify_content(article)
+    policy_labels = policy_focus(article)
+    policy_hits = len(policy_labels)
     # A broad phrase such as “海洋经济合作” is useful context but is not by
     # itself evidence of a national or international plan. Require a planning,
     # strategy, standards, or policy signal before putting an item in that
@@ -535,6 +587,8 @@ def score_article(article: Article, now: datetime | None = None) -> Article:
         policy_hits, policy_labels = 0, []
     future_hits, future_labels = matched_groups(body, FUTURE_GROUPS)
     research_hits, research_labels = matched_groups(body, RESEARCH_GROUPS)
+    if article.content_type == "商业市场资讯":
+        research_hits, research_labels = 0, []
     article.relevance = min(1.0, total_hits / 8)
     # Source tags describe the feed, but must not make every unrelated article
     # look marine-relevant. The score is based on article text only.
@@ -557,7 +611,7 @@ def score_article(article: Article, now: datetime | None = None) -> Article:
 
 
 def total_score(article: Article) -> float:
-    return (
+    score = (
         0.10 * article.relevance
         + 0.25 * article.marine_relevance
         + 0.20 * article.policy_relevance
@@ -566,12 +620,14 @@ def total_score(article: Article) -> float:
         + 0.05 * article.source_score
         + 0.05 * article.freshness
     )
+    return score * (0.15 if article.content_type == "商业市场资讯" else 1.0)
 
 
 def deduplicate(articles: list[Article]) -> list[Article]:
     kept: list[Article] = []
     for article in sorted(articles, key=total_score, reverse=True):
-        if any(ratio(article.title.lower(), old.title.lower()) >= 88 for old in kept):
+        if any(normalize_url(article.url) == normalize_url(old.url) or
+               ratio(article.title.lower(), old.title.lower()) >= 88 for old in kept):
             continue
         kept.append(article)
     return kept
@@ -595,6 +651,9 @@ def save_articles(conn: sqlite3.Connection, articles: Iterable[Article]) -> int:
              article.source_score, article.freshness, now),
         )
         count += int(result.rowcount > 0)
+        # A later retry can fill a previously missing body without losing translations.
+        conn.execute("UPDATE articles SET content = ? WHERE fingerprint = ? AND length(COALESCE(content, '')) < ?",
+                     (article.content, article.fingerprint, len(article.content)))
     conn.commit()
     return count
 
@@ -637,8 +696,9 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
             recent.append(article)
     conn = init_db(db)
     inserted = save_articles(conn, deduplicate(recent))
-    conn.execute("INSERT INTO collection_runs (checked_at, sources_json) VALUES (?, ?)",
-                 (datetime.now(timezone.utc).isoformat(), json.dumps(statuses, ensure_ascii=False)))
+    conn.execute("INSERT INTO collection_runs (checked_at, sources_json, config_hash) VALUES (?, ?, ?)",
+                 (datetime.now(timezone.utc).isoformat(), json.dumps(statuses, ensure_ascii=False),
+                  hashlib.sha256(config.read_bytes()).hexdigest()))
     conn.commit()
     conn.close()
     logging.info("本次发现 %d 条，新增 %d 条", len(recent), inserted)
@@ -655,17 +715,21 @@ def translate_text(text: str, session: requests.Session, cache: dict[str, str]) 
         response.raise_for_status()
         data = response.json()
         translated = "".join(part[0] for part in data[0] if part and part[0]).strip()
-        if translated and translated != text:
+        if translated and translated != text and has_chinese(translated):
             cache[text] = translated
             return translated
     except (requests.RequestException, ValueError, IndexError, TypeError) as exc:
         errors.append(f"Google: {exc}")
     try:
-        response = session.get(MYMEMORY_ENDPOINT, params={"q": text[:1200], "langpair": "en|zh-CN"}, timeout=15)
+        # MyMemory's free endpoint limits input bytes, not Python characters.
+        short = text.encode("utf-8")[:480].decode("utf-8", errors="ignore")
+        response = session.get(MYMEMORY_ENDPOINT, params={"q": short, "langpair": "en|zh-CN"}, timeout=15)
         response.raise_for_status()
         data = response.json()
         translated = clean_text((data.get("responseData") or {}).get("translatedText"))
-        if translated and translated.lower() != text.lower():
+        if str(data.get("responseStatus")) == "200" and translated and has_chinese(translated) and translated.lower() != text.lower():
+            if short != text:
+                translated += "（备用翻译仅含原文前段）"
             cache[text] = translated
             return translated
     except (requests.RequestException, ValueError, TypeError, AttributeError) as exc:
@@ -682,7 +746,7 @@ def rows_for_report(conn: sqlite3.Connection, since_days: int, limit: int) -> li
              0.10 * relevance + 0.25 * marine_relevance + 0.20 * policy_relevance
              + 0.25 * future_relevance + 0.10 * research_relevance
              + 0.05 * source_score + 0.05 * freshness
-           ) AS score
+           ) * CASE WHEN content_type = '商业市场资讯' THEN 0.15 ELSE 1 END AS score
            FROM articles
            WHERE published_at >= ? AND published_at <= ? AND (
              relevance >= 0.15 OR marine_relevance >= 0.15 OR policy_relevance >= 0.15
@@ -707,44 +771,88 @@ def recalculate_scores(conn: sqlite3.Connection) -> None:
         conn.execute(
             """UPDATE articles SET relevance = ?, marine_relevance = ?, policy_relevance = ?,
                future_relevance = ?, research_relevance = ?, focus_tags = ?,
-               source_score = ?, freshness = ? WHERE id = ?""",
+               source_score = ?, freshness = ?, content_type = ? WHERE id = ?""",
             (article.relevance, article.marine_relevance, article.policy_relevance,
              article.future_relevance, article.research_relevance,
              yaml.safe_dump(article.focus_tags or [], allow_unicode=True),
-             article.source_score, article.freshness, row["id"]),
+             article.source_score, article.freshness, article.content_type, row["id"]),
         )
     conn.commit()
+
+
+def report_candidates(conn: sqlite3.Connection, report_dir: Path, since_days: int, limit: int,
+                      date_text: str) -> list[sqlite3.Row]:
+    # Import existing Markdown reports so the first upgrade also avoids repeats.
+    for path in report_dir.glob("weekly-????-??-??.md"):
+        report_date = path.stem.removeprefix("weekly-")
+        if report_date >= date_text:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for block in text.split("### ")[1:]:
+            url = re.search(r"^- 原文：\[([^\]]+)\]", block, re.M)
+            title = re.search(r"^- 原标题：(.+)$", block, re.M)
+            if url and title:
+                conn.execute("INSERT OR IGNORE INTO report_items VALUES (?, ?, ?)",
+                             (report_date, normalize_url(url[1]), title[1].strip()))
+    day = datetime.fromisoformat(date_text)
+    week_start = (day - timedelta(days=day.weekday())).date().isoformat()
+    previous = list(conn.execute("SELECT url, title FROM report_items WHERE report_date < ?", (week_start,)))
+    # Filter before limiting; otherwise old headlines can occupy all available slots.
+    rows = rows_for_report(conn, since_days, -1)
+    kept = []
+    for row in rows:
+        if any(normalize_url(row["url"]) == old["url"] or ratio(row["title"].lower(), old["title"].lower()) >= 88
+               for old in previous + kept):
+            continue
+        kept.append(row)
+        if len(kept) >= limit:
+            break
+    return kept
+
+
+def extract_research_evidence(text: str) -> dict[str, list[str]]:
+    """Extract only literal leads. Links and metrics are not independently verified."""
+    dois = re.findall(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+", text)
+    urls = re.findall(r"https?://[^\s<>\"']+", text)
+    resources = [u.rstrip(".,;，。；)") for u in urls if any(k in u.lower() for k in
+                 ("github.com/", "zenodo.org/", "figshare.com/", "pangaea.de/", "data.marine.copernicus.eu/"))]
+    metrics = re.findall(r"[^。.!?\n]{0,65}(?:RMSE|MAE|R²|均方根误差|平均绝对误差)[^。!?\n]{0,65}", text, re.I)
+    return {"DOI": list(dict.fromkeys(d.rstrip(".,;，。；)") for d in dois))[:3],
+            "数据或代码链接": list(dict.fromkeys(resources))[:3], "精度指标原句": metrics[:2]}
 
 
 def make_report(db: Path, report_dir: Path, since_days: int, limit: int, translate: bool) -> Path:
     conn = init_db(db)
     recalculate_scores(conn)
-    rows = rows_for_report(conn, since_days, limit)
     report_dir.mkdir(parents=True, exist_ok=True)
     date_text = datetime.now(REPORT_TIMEZONE).strftime("%Y-%m-%d")
     output = report_dir / f"weekly-{date_text}.md"
+    rows = report_candidates(conn, report_dir, since_days, limit, date_text)
     translator = requests.Session()
     translator.headers.update({"User-Agent": USER_AGENT})
     cache: dict[str, str] = {}
-    policy = [row for row in rows if row["policy_relevance"] >= 0.25]
-    future = [row for row in rows if row["policy_relevance"] < 0.25 and row["future_relevance"] >= 0.25]
-    research = [row for row in rows if row["policy_relevance"] < 0.25 and row["future_relevance"] < 0.25 and row["research_relevance"] >= 0.25]
-    marine = [row for row in rows if row["policy_relevance"] < 0.25 and row["future_relevance"] < 0.25 and row["research_relevance"] < 0.25 and row["marine_relevance"] >= 0.15]
-    other = [row for row in rows if row not in policy + future + research + marine]
+    commercial = [row for row in rows if row["content_type"] == "商业市场资讯"]
+    policy = [row for row in rows if row not in commercial and row["policy_relevance"] >= 0.25]
+    research = [row for row in rows if row not in commercial + policy and row["content_type"] in ("科研成果线索", "数据与代码线索")]
+    future = [row for row in rows if row not in commercial + policy + research and row["future_relevance"] >= 0.25 and row["marine_relevance"] >= 0.15]
+    marine = [row for row in rows if row not in commercial + policy + research + future and row["marine_relevance"] >= 0.15]
+    other = [row for row in rows if row not in commercial + policy + future + research + marine]
     lines = [
         f"# 测绘与海洋测绘新闻周报（{date_text}）", "",
         f"> 最近 {since_days} 天；本周报按海洋测绘、十五五/国际规划、未来技术和科研价值筛选。",
         "> 规划关键词用于发现政策信号，不能替代对原始规划文件的正式解读。", "",
+        "> 仅收录发布日期窗口内、未在往周周报出现的新闻；本周重跑允许更新。评分仅表示关键词匹配程度。",
+        "> 摘要来自站点简介或正文节选；自动翻译未经人工校核，技术术语请对照原文。", "",
     ]
-    last_run = conn.execute("SELECT checked_at, sources_json FROM collection_runs ORDER BY id DESC LIMIT 1").fetchone()
+    last_run = conn.execute("SELECT checked_at, sources_json, config_hash FROM collection_runs ORDER BY id DESC LIMIT 1").fetchone()
     if last_run:
         statuses = json.loads(last_run["sources_json"])
         incomplete = [s["name"] for s in statuses if s["status"] != "正常"]
-        lines.extend([f"> 本期入选 {len(rows)} 条；可包含数据库中仍在日期窗口内的已收录新闻。", ""])
+        lines.extend([f"> 本期入选 {len(rows)} 条，其中商业市场资讯 {len(commercial)} 条。", ""])
         if incomplete:
             lines.extend(["> **采集覆盖不完整：** " + "、".join(incomplete) + "。详情见文末来源状态。", ""])
     if not rows:
-        lines.append("本周期没有采集到新闻。可以检查 GDELT/RSS 新闻源是否可访问。\n")
+        lines.append("本期没有符合日期与筛选条件、且未在往周收录的新闻；不表示本周没有相关新闻。\n")
 
     def append_section(title: str, selected: list[sqlite3.Row]) -> None:
         if not selected:
@@ -776,8 +884,12 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
                 focus_tags = ""
             if not focus_tags:
                 focus_tags = "常规测绘新闻"
-            if row["policy_relevance"] >= 0.25:
+            if row in commercial:
+                study_hint = "只记录应用场景和产业需求；市场规模预测不能用来证明算法或装备的技术优势。"
+            elif row["policy_relevance"] >= 0.25:
                 study_hint = "先保存政策原文，记录目标、时间表、重点工程和对海洋测绘的需求。"
+            elif row in research:
+                study_hint = "先找到原论文，再核对研究区、数据获取许可、方法基线、训练与验证数据是否独立，以及精度指标。"
             elif row["future_relevance"] >= 0.25:
                 study_hint = "记录传感器、数据源、算法、坐标基准、误差指标和可复现实验入口。"
             elif row["research_relevance"] >= 0.25:
@@ -787,19 +899,30 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
             lines.extend([
                 f"### {index}. {title_zh}", "",
                 f"- 原标题：{row['title']}", f"- 来源：{row['source_name']}",
-                f"- 日期：{row['published_at'] or '未知'}",
-                f"- 评分：{row['score']:.3f}（海洋测绘 {row['marine_relevance']:.2f}，规划 {row['policy_relevance']:.2f}，未来技术 {row['future_relevance']:.2f}，科研价值 {row['research_relevance']:.2f}）",
+                f"- 日期（北京时间）：{datetime.fromisoformat(row['published_at']).astimezone(REPORT_TIMEZONE).isoformat()}",
+                f"- 内容类型（自动识别）：{row['content_type']}",
+                f"- 翻译状态：{'中文原文' if has_chinese(row['title']) else ('已有自动译文，术语待核对' if has_chinese(title_zh) and has_chinese(summary_zh) else '翻译不完整，保留原文供核对')}",
+                f"- 关键词匹配分：{row['score']:.3f}（海洋测绘 {row['marine_relevance']:.2f}，规划 {row['policy_relevance']:.2f}，未来技术 {row['future_relevance']:.2f}，科研线索 {row['research_relevance']:.2f}）",
                 f"- 方向标签：{focus_tags}", f"- 来源标签：{tags or '待分类'}", f"- 原文：[{row['url']}]({row['url']})", "",
                 f"**中文摘要：** {summary_zh}", f"**原文摘要：** {summary}", "",
                 f"**面向保研的学习提示：** {study_hint}", "",
             ])
+            if row in research:
+                evidence = extract_research_evidence(f"{row['summary']} {row['content']}")
+                lines.append("**可复现线索（仅提取原文，未验证可用性）：**")
+                for label, values in evidence.items():
+                    lines.append(f"- {label}：" + ("；".join(values) if values else "未从已采集文本中提取到，需打开原文核对"))
+                lines.append("")
+            if row in commercial:
+                lines.extend(["商业预测仅作行业背景，不作为技术精度或科研成果证据。", ""])
         conn.commit()
 
     append_section("十五五与国际海洋规划信号", policy)
     append_section("未来海洋测绘技术", future)
-    append_section("科研与保研高价值线索", research)
+    append_section("科研与保研线索（待核验）", research)
     append_section("海洋测绘重点", marine)
     append_section("测绘与前沿技术", other)
+    append_section("商业市场资讯（低优先级）", commercial)
     if last_run:
         lines.extend(["## 新闻源采集状态", "", f"采集时间：{last_run['checked_at']}", "",
                       "| 来源 | 状态 | 近期条数（入选前） | 说明 |", "| --- | --- | ---: | --- |"])
@@ -808,6 +931,16 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
             lines.append(f"| {status['name']} | {status['status']} | {status['recent']} | {detail} |")
         lines.extend(["", "“正常但 0 条”表示本次没有符合日期、关键词的条目；“失败”表示该来源覆盖不完整。条数不代表周报入选数量。", ""])
     output.write_text("\n".join(lines), encoding="utf-8")
+    for row in rows:
+        conn.execute("INSERT OR IGNORE INTO report_items VALUES (?, ?, ?)",
+                     (date_text, normalize_url(row["url"]), row["title"]))
+    statuses = json.loads(last_run["sources_json"]) if last_run else []
+    health = {"report_date": date_text, "checked_at": last_run["checked_at"] if last_run else None,
+              "complete": bool(statuses) and all(s["status"] == "正常" for s in statuses),
+              "selected": len(rows), "sources": statuses,
+              "config_hash": last_run["config_hash"] if last_run else ""}
+    (report_dir / "health.json").write_text(json.dumps(health, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    conn.commit()
     conn.close()
     return output
 

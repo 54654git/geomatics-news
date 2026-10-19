@@ -199,12 +199,12 @@ class SourceTests(unittest.TestCase):
 
     def test_policy_and_future_direction_scores_are_separate(self):
         article = self.article(self.today)
-        article.title = "十五五海洋强国与S-100数字水深规划"
+        article.title = "十五五海洋强国与S-100数字水深规划发布"
         article.summary = "无人船多波束测深和数字孪生海洋数据标准"
         g.score_article(article)
         self.assertGreaterEqual(article.policy_relevance, 0.5)
         self.assertGreaterEqual(article.future_relevance, 0.5)
-        self.assertIn("中国十五五与海洋强国", article.focus_tags)
+        self.assertIn("中国十五五（原文提及）", article.focus_tags)
         self.assertIn("智能无人测量", article.focus_tags)
 
     def test_broad_ocean_economy_news_needs_policy_context(self):
@@ -223,6 +223,7 @@ class SourceTests(unittest.TestCase):
             policy.title = "十五五海洋强国规划发布"
             policy.summary = "海洋科技与海洋观测重点任务"
             future = self.article(self.today)
+            future.url = "https://school.edu.cn/info/2.htm"
             future.title = "无人船多波束水深测量新技术"
             future.summary = "点云算法和精度验证"
             g.save_articles(conn, [g.score_article(policy), g.score_article(future)])

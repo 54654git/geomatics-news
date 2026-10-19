@@ -35,6 +35,11 @@ sources:
   - 海洋生态
   - 海洋观测
   - 海岸带
+  - 海洋空间规划
+  - 海岛空间
+  - 海洋数据
+  - 海底
+  - 水声
   - 数字孪生
   - 无人船
   - AUV
@@ -142,6 +147,20 @@ sources:
   max_items: 12
   request_interval: 1
   enabled: true
+- id: fio_research
+  name: 自然资源部第一海洋研究所·科研动态
+  type: html
+  url: https://www.fio.org.cn/science/xue-shu-huo-dong-list-0.htm
+  article_url_pattern: /science/xshd-detail-\d+\.htm
+  allowed_domains:
+  - fio.org.cn
+  required_terms: *id001
+  tags:
+  - 官方科研院所
+  - 青岛海洋科研
+  max_items: 10
+  request_interval: 1
+  enabled: true
 - id: noaa_coast_survey
   name: NOAA 海岸测量办公室（官方 RSS）
   type: rss
@@ -158,6 +177,15 @@ sources:
   tags:
   - 官方项目
   - 海底地形与数据
+  max_items: 20
+  enabled: true
+- id: seabed2030_news
+  name: Seabed 2030 全球海底测绘项目（官方 RSS）
+  type: rss
+  url: https://seabed2030.org/feed/
+  tags:
+  - 官方项目
+  - 全球海底测绘
   max_items: 20
   enabled: true
 - id: gdelt_cn_marine

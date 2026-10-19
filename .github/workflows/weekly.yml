@@ -37,9 +37,11 @@ jobs:
           TRIGGER_EVENT: ${{ github.event_name }}
         run: |
           report="reports/weekly-$(TZ=Asia/Shanghai date +%F).md"
-          if [ "$TRIGGER_EVENT" = "schedule" ] && [ -s "$report" ]; then
+          # Ubuntu runner includes Python 3; this helper uses only its standard library.
+          due=$(python3 scripts/report_due.py)
+          if [ "$TRIGGER_EVENT" = "schedule" ] && [ "$due" = "false" ]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Today's report already exists. Scheduled backup skipped." >> "$GITHUB_STEP_SUMMARY"
+            echo "Today's report has complete source coverage. Scheduled backup skipped." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "run=true" >> "$GITHUB_OUTPUT"
             echo "Generating report: $report (trigger: $TRIGGER_EVENT)" >> "$GITHUB_STEP_SUMMARY"
@@ -90,6 +92,21 @@ jobs:
             reports/
             data/news.db
           retention-days: 30
+
+      - name: Show source coverage in run summary
+        if: steps.due.outputs.run == 'true'
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          health = json.loads(Path('reports/health.json').read_text(encoding='utf-8'))
+          failed = [s['name'] for s in health['sources'] if s['status'] != '正常']
+          text = '采集覆盖不完整：' + '、'.join(failed) if failed else '本次启用来源均读取正常（不代表全网覆盖）。'
+          if failed:
+              print('::warning::' + text)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
+              f.write('\n' + text + '\n')
+          PY
 
       - name: Commit weekly report and database
         if: steps.due.outputs.run == 'true'
