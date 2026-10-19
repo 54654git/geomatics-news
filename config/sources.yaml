@@ -127,6 +127,39 @@ sources:
   - 国内媒体
   max_items: 100
   enabled: true
+- id: nmdis_news
+  name: 国家海洋信息中心（直接采集）
+  type: html
+  url: https://www.nmdis.org.cn/
+  article_url_pattern: /c/20\d{2}-\d{2}-\d{2}/\d+\.shtml
+  allowed_domains:
+  - nmdis.org.cn
+  required_terms: *id001
+  date_xpath: //em[contains(text(),'发布时间')]
+  tags:
+  - 官方
+  - 海洋数据与规划
+  max_items: 12
+  request_interval: 1
+  enabled: true
+- id: noaa_coast_survey
+  name: NOAA 海岸测量办公室（官方 RSS）
+  type: rss
+  url: https://nauticalcharts.noaa.gov/updates/feed/
+  tags:
+  - 官方
+  - 海道测量
+  max_items: 20
+  enabled: true
+- id: gebco_news
+  name: GEBCO 海底测绘与数据（官方 RSS）
+  type: rss
+  url: https://www.gebco.net/news.xml
+  tags:
+  - 官方项目
+  - 海底地形与数据
+  max_items: 20
+  enabled: true
 - id: gdelt_cn_marine
   name: GDELT 中文海洋测绘新闻（备用，默认关闭）
   type: gdelt
@@ -171,7 +204,7 @@ sources:
   max_content_items: 5
   enabled: false
 - id: gdelt_en_marine
-  name: GDELT 国际海洋测绘新闻
+  name: GDELT 国际海洋测绘新闻（限流备用，默认关闭）
   type: gdelt
   query: ("hydrographic survey" OR bathymetry OR multibeam OR sonar OR "ocean mapping" OR AUV)
   language: English
@@ -191,9 +224,9 @@ sources:
   - multibeam
   max_items: 15
   max_content_items: 5
-  enabled: true
+  enabled: false
 - id: gdelt_en_ocean_policy
-  name: GDELT 国际海洋规划与标准新闻
+  name: GDELT 国际海洋规划与标准新闻（限流备用，默认关闭）
   type: gdelt
   query: ("Ocean Decade" OR "UN Decade of Ocean Science" OR "IHO S-100" OR "S-102" OR "Seabed 2030" OR GEBCO OR EMODnet OR "Digital Twin Ocean" OR "blue economy" OR "marine spatial planning")
   language: English
@@ -215,7 +248,7 @@ sources:
   - 未来方向
   max_items: 12
   max_content_items: 5
-  enabled: true
+  enabled: false
 - id: gdelt_cn_university_research
   name: GDELT 国内高校与科研院所测绘新闻（备用，默认关闭）
   type: gdelt

@@ -21,11 +21,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urldefrag, urljoin, urlsplit
+from zoneinfo import ZoneInfo
 from lxml import html as lxml_html
 from lxml.etree import LxmlError
 
 import feedparser
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import yaml
 from rapidfuzz.fuzz import ratio
 
@@ -43,6 +46,8 @@ USER_AGENT = "geomatics-news-student-project/0.3 (+https://github.com/54654git/g
 TRANSLATE_ENDPOINT = "https://translate.googleapis.com/translate_a/single"
 MYMEMORY_ENDPOINT = "https://api.mymemory.translated.net/get"
 GDELT_LAST_REQUEST = 0.0
+GDELT_COOLDOWN_UNTIL = 0.0
+REPORT_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
     "海洋测绘": (
@@ -67,7 +72,7 @@ POLICY_GROUPS: dict[str, tuple[str, ...]] = {
     "中国十五五与海洋强国": (
         "十五五", "第十五个五年", "海洋强国", "海洋经济", "海洋科技",
         "海洋资源", "海洋生态", "海洋安全", "海洋观测", "海岸带",
-        "深海", "海岛", "蓝色经济", "海洋战略",
+        "深海", "海岛", "蓝色经济", "海洋战略", "海洋空间规划", "滨海湿地", "陆海统筹",
     ),
     "国际海洋规划与标准": (
         "ocean decade", "un decade of ocean science", "联合国海洋科学十年",
@@ -127,11 +132,25 @@ TRUSTED_SOURCE_DOMAINS = (
     "nasa.gov", "noaa.gov", "esa.int", "usgs.gov", "iho.int", "isprs.org", "fig.net",
     "gov.cn", "edu.cn", "edu", "nature.com", "science.org", "xinhuanet.com",
     "people.com.cn", "cctv.com", "cnr.cn", "news.cn", "chinanews.com.cn", "cas.cn",
+    "nmdis.org.cn", "gebco.net",
 )
 
 
 class SourceError(RuntimeError):
     """A source could not be read; distinct from a valid empty search."""
+
+
+def collection_session() -> requests.Session:
+    """Retry temporary DNS/connect failures, but never auto-retry HTTP 429."""
+    session = requests.Session()
+    retries = Retry(total=2, connect=2, read=1, status=1, backoff_factor=1,
+                    status_forcelist=(502, 503, 504), allowed_methods=frozenset({"GET"}),
+                    respect_retry_after_header=False)
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+    session.mount("http://", HTTPAdapter(max_retries=retries))
+    session.headers.update({"User-Agent": USER_AGENT,
+                            "Accept": "application/rss+xml, application/atom+xml, application/json, text/html;q=0.9"})
+    return session
 
 
 @dataclass
@@ -285,6 +304,8 @@ def article_body(text: str) -> str:
     tree = lxml_html.fromstring(text)
     nodes = tree.xpath("//*[@id='content1' or @id='detailContent' or starts-with(@id,'vsb_content') "
                        "or contains(concat(' ',normalize-space(@class),' '),' TRS_Editor ') "
+                       "or contains(concat(' ',normalize-space(@class),' '),' bodytext ') "
+                       "or contains(concat(' ',normalize-space(@class),' '),' entry-content ') "
                        "or contains(concat(' ',normalize-space(@class),' '),' article-content ')]")
     if nodes:
         body = nodes[0]
@@ -386,7 +407,8 @@ def fetch_article_content(url: str, session: requests.Session) -> str:
         return ""
 
 
-def collect_feed(source: dict[str, Any], session: requests.Session, fetch_content: bool) -> list[Article]:
+def collect_feed(source: dict[str, Any], session: requests.Session, fetch_content: bool,
+                 since_days: int = 8) -> list[Article]:
     try:
         response = session.get(source["url"], timeout=30)
         response.raise_for_status()
@@ -406,16 +428,26 @@ def collect_feed(source: dict[str, Any], session: requests.Session, fetch_conten
         summary = clean_text(entry.get("summary") or entry.get("description"))
         if not required_match(source, title + " " + summary):
             continue
-        content = fetch_article_content(url, session) if fetch_content else summary
-        articles.append(Article(source["id"], source.get("name", source["id"]), title, url,
-                                parse_date(entry), summary, content or summary, list(source.get("tags", []))))
+        article = Article(source["id"], source.get("name", source["id"]), title, url,
+                          parse_date(entry), summary, summary, list(source.get("tags", [])))
+        # Do not download full archives simply to discard old articles later.
+        if not is_recent(article, since_days):
+            continue
+        # Some official feeds include the complete article (content:encoded).
+        # Prefer that text to an abbreviated webpage or an unnecessary request.
+        feed_content = clean_text(" ".join(part.get("value", "") for part in entry.get("content", [])))
+        if fetch_content:
+            article.content = feed_content or fetch_article_content(url, session) or summary
+        articles.append(article)
     return articles
 
 
 def collect_gdelt(source: dict[str, Any], session: requests.Session, fetch_content: bool,
                   since_days: int = 8) -> list[Article]:
-    global GDELT_LAST_REQUEST
-    delay = 5.2 - (time.monotonic() - GDELT_LAST_REQUEST)
+    global GDELT_LAST_REQUEST, GDELT_COOLDOWN_UNTIL
+    if time.monotonic() < GDELT_COOLDOWN_UNTIL:
+        raise SourceError("GDELT HTTP 429 冷却中，本轮跳过后续查询；直连来源继续采集")
+    delay = 10.0 - (time.monotonic() - GDELT_LAST_REQUEST)
     if delay > 0:
         time.sleep(delay)
     params = {
@@ -426,13 +458,11 @@ def collect_gdelt(source: dict[str, Any], session: requests.Session, fetch_conte
         try:
             response = session.get("https://api.gdeltproject.org/api/v2/doc/doc", params=params, timeout=35)
             GDELT_LAST_REQUEST = time.monotonic()
-            if response.status_code == 429 and attempt == 0:
-                retry_after = response.headers.get("Retry-After", "10")
-                delay = int(retry_after) if retry_after.isdigit() else 10
-                if delay > 30:
-                    raise SourceError(f"HTTP 429 限流，服务要求等待 {delay} 秒；本次跳过")
-                time.sleep(max(6, delay))
-                continue
+            if response.status_code == 429:
+                retry_after = response.headers.get("Retry-After", "60")
+                cooldown = int(retry_after) if retry_after.isdigit() else 60
+                GDELT_COOLDOWN_UNTIL = time.monotonic() + max(60, cooldown)
+                raise SourceError("GDELT HTTP 429 服务端限流，已进入冷却；直连来源继续采集")
             response.raise_for_status()
             if not response.text.lstrip().startswith("{"):
                 raise SourceError("GDELT 返回非 JSON 响应：" + clean_text(response.text)[:160])
@@ -571,8 +601,7 @@ def save_articles(conn: sqlite3.Connection, articles: Iterable[Article]) -> int:
 
 def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int:
     sources = load_sources(config)
-    session = requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/rss+xml, application/atom+xml, application/json, text/html;q=0.9"})
+    session = collection_session()
     all_articles: list[Article] = []
     statuses: list[dict[str, Any]] = []
     for source in sources:
@@ -589,7 +618,7 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
                     status.update(status="部分失败", detail="; ".join(errors[:2])[:250])
                     logging.warning("来源部分失败 %s: %s", source["id"], status["detail"])
             elif kind == "rss":
-                items = collect_feed(source, session, fetch_content)
+                items = collect_feed(source, session, fetch_content, since_days)
             else:
                 raise SourceError(f"不支持的新闻源类型：{kind}")
             status["candidates"] = len(items)
@@ -692,7 +721,7 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
     recalculate_scores(conn)
     rows = rows_for_report(conn, since_days, limit)
     report_dir.mkdir(parents=True, exist_ok=True)
-    date_text = datetime.now().astimezone().strftime("%Y-%m-%d")
+    date_text = datetime.now(REPORT_TIMEZONE).strftime("%Y-%m-%d")
     output = report_dir / f"weekly-{date_text}.md"
     translator = requests.Session()
     translator.headers.update({"User-Agent": USER_AGENT})
@@ -707,6 +736,13 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
         f"> 最近 {since_days} 天；本周报按海洋测绘、十五五/国际规划、未来技术和科研价值筛选。",
         "> 规划关键词用于发现政策信号，不能替代对原始规划文件的正式解读。", "",
     ]
+    last_run = conn.execute("SELECT checked_at, sources_json FROM collection_runs ORDER BY id DESC LIMIT 1").fetchone()
+    if last_run:
+        statuses = json.loads(last_run["sources_json"])
+        incomplete = [s["name"] for s in statuses if s["status"] != "正常"]
+        lines.extend([f"> 本期入选 {len(rows)} 条；可包含数据库中仍在日期窗口内的已收录新闻。", ""])
+        if incomplete:
+            lines.extend(["> **采集覆盖不完整：** " + "、".join(incomplete) + "。详情见文末来源状态。", ""])
     if not rows:
         lines.append("本周期没有采集到新闻。可以检查 GDELT/RSS 新闻源是否可访问。\n")
 
@@ -764,7 +800,6 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
     append_section("科研与保研高价值线索", research)
     append_section("海洋测绘重点", marine)
     append_section("测绘与前沿技术", other)
-    last_run = conn.execute("SELECT checked_at, sources_json FROM collection_runs ORDER BY id DESC LIMIT 1").fetchone()
     if last_run:
         lines.extend(["## 新闻源采集状态", "", f"采集时间：{last_run['checked_at']}", "",
                       "| 来源 | 状态 | 近期条数（入选前） | 说明 |", "| --- | --- | ---: | --- |"])

@@ -23,6 +23,9 @@ def response(text, encoding="utf-8", status=200):
 
 class SourceTests(unittest.TestCase):
     def setUp(self):
+        cooldown = patch.object(g, "GDELT_COOLDOWN_UNTIL", 0)
+        cooldown.start()
+        self.addCleanup(cooldown.stop)
         self.today = datetime.now(timezone.utc).date().isoformat()
         self.source = dict(id="test", name="测试来源", type="html", url="https://school.edu.cn/news/",
                            article_url_pattern=r"/info/\d+\.htm", required_terms=["水深", "测绘"],
@@ -100,6 +103,57 @@ class SourceTests(unittest.TestCase):
             with self.assertRaisesRegex(g.SourceError, "query is too long"):
                 g.collect_gdelt(dict(id="gdelt", query="bathymetry"), session, False)
 
+    def test_rate_limit_skips_following_queries_without_more_requests(self):
+        session = Mock()
+        session.get.return_value = response("Too many requests", status=429)
+        with patch.object(g, "GDELT_LAST_REQUEST", 0), patch.object(g.time, "sleep") as sleep:
+            for query in ("bathymetry", "ocean policy"):
+                with self.assertRaisesRegex(g.SourceError, "429"):
+                    g.collect_gdelt(dict(id="gdelt", query=query), session, False)
+            sleep.assert_not_called()
+        self.assertEqual(session.get.call_count, 1)
+
+    def test_rss_only_fetches_recent_article_bodies(self):
+        recent = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        feed = f'''<rss version="2.0"><channel><title>NOAA</title>
+        <item><title>Bathymetry dataset</title><link>https://noaa.gov/new</link>
+        <pubDate>{recent}</pubDate></item>
+        <item><title>Old bathymetry</title><link>https://noaa.gov/old</link>
+        <pubDate>Sat, 01 Jan 2000 00:00:00 GMT</pubDate></item></channel></rss>'''
+        session = Mock()
+        session.get.return_value = response(feed)
+        with patch.object(g, "fetch_article_content", return_value="Multibeam data") as fetch:
+            articles = g.collect_feed(dict(id="noaa", url="https://noaa.gov/feed"), session, True, 8)
+        self.assertEqual(len(articles), 1)
+        fetch.assert_called_once_with("https://noaa.gov/new", session)
+
+    def test_official_rss_full_text_is_used_without_webpage_request(self):
+        recent = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        feed = f'''<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+        <channel><title>NOAA</title><item><title>New mapping project</title>
+        <link>https://noaa.gov/new</link><pubDate>{recent}</pubDate>
+        <description>Short introduction</description>
+        <content:encoded><![CDATA[<p>Hydrographic bathymetry multibeam dataset</p>]]></content:encoded>
+        </item></channel></rss>'''
+        session = Mock()
+        session.get.return_value = response(feed)
+        with patch.object(g, "fetch_article_content") as fetch:
+            articles = g.collect_feed(dict(id="noaa", url="https://noaa.gov/feed"), session, True, 8)
+        fetch.assert_not_called()
+        self.assertIn("multibeam dataset", articles[0].content)
+
+    def test_nmdis_body_excludes_recommendations_and_preserves_research(self):
+        text = '<nav>军事 新闻</nav><div class="bodytext"><p>滨海湿地空间规划论文与数据集</p></div><footer>其他新闻</footer>'
+        self.assertEqual(g.article_body(text), "滨海湿地空间规划论文与数据集")
+
+    def test_report_filename_uses_beijing_date_even_on_utc_runner(self):
+        fixed = datetime(2026, 10, 19, 17, 30, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory() as folder, patch.object(g, "datetime", wraps=datetime) as clock:
+            clock.now.side_effect = lambda tz=None: fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
+            root = Path(folder)
+            path = g.make_report(root / "news.db", root / "reports", 8, 30, False)
+            self.assertEqual(path.name, "weekly-2026-10-20.md")
+
     def test_report_filters_by_publication_not_collection_date(self):
         with tempfile.TemporaryDirectory() as folder:
             conn = g.init_db(Path(folder) / "news.db")
@@ -123,6 +177,7 @@ class SourceTests(unittest.TestCase):
             report = g.make_report(root / "news.db", root / "reports", 8, 30, False).read_text(encoding="utf-8")
             self.assertIn("新闻源采集状态", report)
             self.assertIn("HTTP 503", report)
+            self.assertIn("采集覆盖不完整", report)
 
     def test_platform_label_cannot_make_an_arbitrary_article_trusted(self):
         article = self.article(self.today)

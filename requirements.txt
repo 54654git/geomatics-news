@@ -4,4 +4,5 @@ requests>=2.32.0,<3
 trafilatura>=2.0.0,<3
 rapidfuzz>=3.9.0,<4
 lxml>=5,<7
+tzdata>=2025.1
 
