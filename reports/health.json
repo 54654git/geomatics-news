@@ -1,0 +1,113 @@
+{
+  "report_date": "2026-10-19",
+  "checked_at": "2026-10-19T13:34:20.019547+00:00",
+  "complete": false,
+  "selected": 4,
+  "sources": [
+    {
+      "id": "cnr_tech",
+      "name": "央广网·科技（直接采集）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "xinhua_tech",
+      "name": "新华网·科技（直接采集）",
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
+    },
+    {
+      "id": "mnr_surveying",
+      "name": "自然资源部·测绘（直接采集）",
+      "status": "失败",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re"
+    },
+    {
+      "id": "mnr_ocean",
+      "name": "自然资源部·海洋（直接采集）",
+      "status": "失败",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/hy/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re"
+    },
+    {
+      "id": "glut_news",
+      "name": "桂林理工大学·桂工要闻（直接采集）",
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
+    },
+    {
+      "id": "cas_research",
+      "name": "中国科学院·科研进展（直接采集）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "chinanews_rss",
+      "name": "中国新闻网·即时新闻 RSS",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "nmdis_news",
+      "name": "国家海洋信息中心（直接采集）",
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
+    },
+    {
+      "id": "fio_research",
+      "name": "自然资源部第一海洋研究所·科研动态",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "noaa_coast_survey",
+      "name": "NOAA 海岸测量办公室（官方 RSS）",
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
+    },
+    {
+      "id": "gebco_news",
+      "name": "GEBCO 海底测绘与数据（官方 RSS）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "seabed2030_news",
+      "name": "Seabed 2030 全球海底测绘项目（官方 RSS）",
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
+    },
+    {
+      "id": "esa_earth_observation",
+      "name": "ESA Earth Observation",
+      "status": "正常",
+      "candidates": 2,
+      "recent": 2,
+      "detail": ""
+    }
+  ],
+  "config_hash": "2078d1b9e001ce74d0675d5c606b5950368789006755b641279f13025e504d58"
+}
