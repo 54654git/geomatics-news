@@ -60,24 +60,20 @@ jobs:
         if: steps.due.outputs.run == 'true'
         run: python -m unittest discover -s tests -v
 
-      - name: Check ministry DNS and try alternate resolvers if needed
+      - name: Check ministry DNS and try HTTPS DNS if needed
         if: steps.due.outputs.run == 'true'
         shell: bash
         run: |
           if timeout 15s getent ahostsv4 www.mnr.gov.cn; then
             echo "Ministry DNS resolved normally."
           else
-            echo "Default resolver failed; trying alternate DNS in this temporary runner."
-            network_interface=$(ip -o route show default | awk '{print $5; exit}')
-            if command -v resolvectl >/dev/null && [ -n "$network_interface" ]; then
-              sudo resolvectl dns "$network_interface" 1.1.1.1 8.8.8.8 || true
-              sudo resolvectl flush-caches || true
+            echo "Default resolver failed; querying public DNS over HTTPS."
+            python scripts/resolve_mnr.py > "$RUNNER_TEMP/mnr-hosts"
+            if [ -s "$RUNNER_TEMP/mnr-hosts" ]; then
+              sudo tee -a /etc/hosts < "$RUNNER_TEMP/mnr-hosts"
             fi
             if ! timeout 15s getent ahostsv4 www.mnr.gov.cn; then
               echo "::warning::Ministry DNS remains unavailable. Other official sources will still be collected."
-              if command -v resolvectl >/dev/null && [ -n "$network_interface" ]; then
-                sudo resolvectl revert "$network_interface" || true
-              fi
             fi
           fi
 
