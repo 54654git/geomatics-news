@@ -1,6 +1,6 @@
 {
   "report_date": "2026-10-19",
-  "checked_at": "2026-10-19T13:34:20.019547+00:00",
+  "checked_at": "2026-10-19T14:50:27.512123+00:00",
   "complete": false,
   "selected": 4,
   "sources": [
@@ -56,8 +56,8 @@
       "id": "chinanews_rss",
       "name": "中国新闻网·即时新闻 RSS",
       "status": "正常",
-      "candidates": 0,
-      "recent": 0,
+      "candidates": 2,
+      "recent": 2,
       "detail": ""
     },
     {
