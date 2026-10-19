@@ -14,7 +14,8 @@ import requests
 
 
 HOST = "www.mnr.gov.cn"
-RESOLVERS = ("https://dns.google/resolve", "https://cloudflare-dns.com/dns-query")
+RESOLVERS = ("https://dns.alidns.com/resolve", "https://dns.google/resolve",
+             "https://cloudflare-dns.com/dns-query")
 
 
 def public_addresses(payload: dict) -> list[str]:
