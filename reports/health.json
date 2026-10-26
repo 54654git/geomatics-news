@@ -1,8 +1,8 @@
 {
-  "report_date": "2026-10-19",
-  "checked_at": "2026-10-19T14:50:27.512123+00:00",
-  "complete": false,
-  "selected": 4,
+  "report_date": "2026-10-26",
+  "checked_at": "2026-10-26T03:16:41.199537+00:00",
+  "complete": true,
+  "selected": 5,
   "sources": [
     {
       "id": "cnr_tech",
@@ -16,32 +16,32 @@
       "id": "xinhua_tech",
       "name": "新华网·科技（直接采集）",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 2,
+      "recent": 2,
       "detail": ""
     },
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "失败",
-      "candidates": 0,
-      "recent": 0,
-      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re"
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
     },
     {
       "id": "mnr_ocean",
       "name": "自然资源部·海洋（直接采集）",
-      "status": "失败",
-      "candidates": 0,
-      "recent": 0,
-      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/hy/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re"
+      "status": "正常",
+      "candidates": 2,
+      "recent": 2,
+      "detail": ""
     },
     {
       "id": "glut_news",
       "name": "桂林理工大学·桂工要闻（直接采集）",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     },
     {
@@ -56,8 +56,8 @@
       "id": "chinanews_rss",
       "name": "中国新闻网·即时新闻 RSS",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     },
     {
@@ -80,8 +80,8 @@
       "id": "noaa_coast_survey",
       "name": "NOAA 海岸测量办公室（官方 RSS）",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     },
     {
@@ -96,16 +96,16 @@
       "id": "seabed2030_news",
       "name": "Seabed 2030 全球海底测绘项目（官方 RSS）",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     },
     {
       "id": "esa_earth_observation",
       "name": "ESA Earth Observation",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 3,
+      "recent": 3,
       "detail": ""
     }
   ],
