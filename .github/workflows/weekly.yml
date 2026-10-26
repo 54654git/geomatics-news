@@ -2,11 +2,12 @@ name: Weekly Geomatics News
 
 on:
   schedule:
-    # UTC：北京时间周一 09:17 首次运行，11:47 / 15:23 检查补跑。
-    # 避开整点；schedule 仍可能延迟，不能保证准时。
-    - cron: "17 1 * * 1"
-    - cron: "47 3 * * 1"
-    - cron: "23 7 * * 1"
+    # UTC：北京时间周一 08:17 到 23:17，每小时一个机会。
+    # GitHub 的 schedule 会延迟数小时甚至漏触发（2026-10-19 延迟 7.4 小时，
+    # 2026-10-26 首槽直接没跑），所以用多个时点叠加容错。
+    # 每次触发都会先跑 scripts/report_due.py：当天报告已齐全就秒退，成本约 1 分钟。
+    # 避开整点的 :17，减少 GitHub 高峰调度压力。
+    - cron: "17 0-15 * * 1"
   workflow_dispatch:
 
 env:
@@ -39,7 +40,12 @@ jobs:
           report="reports/weekly-$(TZ=Asia/Shanghai date +%F).md"
           # Ubuntu runner includes Python 3; this helper uses only its standard library.
           due=$(python3 scripts/report_due.py)
-          if [ "$TRIGGER_EVENT" = "schedule" ] && [ "$due" = "false" ]; then
+          weekday=$(TZ=Asia/Shanghai date +%u)
+          if [ "$TRIGGER_EVENT" = "schedule" ] && [ "$weekday" != "1" ]; then
+            # 定时任务可能被延迟到周二才真正执行；此时不能按「今天」生成周报。
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Scheduled run drifted past Monday (Beijing). Skipped so no off-week report is created." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$TRIGGER_EVENT" = "schedule" ] && [ "$due" = "false" ]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "Today's report has complete source coverage. Scheduled backup skipped." >> "$GITHUB_STEP_SUMMARY"
           else
