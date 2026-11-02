@@ -1,23 +1,23 @@
 {
-  "report_date": "2026-10-26",
-  "checked_at": "2026-10-26T03:16:41.199537+00:00",
+  "report_date": "2026-11-02",
+  "checked_at": "2026-11-02T06:03:21.930384+00:00",
   "complete": true,
-  "selected": 5,
+  "selected": 8,
   "sources": [
     {
       "id": "cnr_tech",
       "name": "央广网·科技（直接采集）",
       "status": "正常",
-      "candidates": 0,
-      "recent": 0,
+      "candidates": 1,
+      "recent": 1,
       "detail": ""
     },
     {
       "id": "xinhua_tech",
       "name": "新华网·科技（直接采集）",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 1,
+      "recent": 1,
       "detail": ""
     },
     {
@@ -32,8 +32,8 @@
       "id": "mnr_ocean",
       "name": "自然资源部·海洋（直接采集）",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 4,
+      "recent": 4,
       "detail": ""
     },
     {
@@ -56,8 +56,8 @@
       "id": "chinanews_rss",
       "name": "中国新闻网·即时新闻 RSS",
       "status": "正常",
-      "candidates": 0,
-      "recent": 0,
+      "candidates": 3,
+      "recent": 3,
       "detail": ""
     },
     {
@@ -96,8 +96,8 @@
       "id": "seabed2030_news",
       "name": "Seabed 2030 全球海底测绘项目（官方 RSS）",
       "status": "正常",
-      "candidates": 0,
-      "recent": 0,
+      "candidates": 1,
+      "recent": 1,
       "detail": ""
     },
     {
