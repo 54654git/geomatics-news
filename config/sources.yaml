@@ -341,7 +341,7 @@ sources:
   max_items: 15
   enabled: false
 - id: esa_earth_observation
-  name: ESA Earth Observation
+  name: ESA Earth Observation（官方 RSS 已全部 404，暂关闭）
   type: rss
   url: https://www.esa.int/rssfeed/Our_Activities/Observing_the_Earth
   tags:
@@ -350,7 +350,7 @@ sources:
   - satellite
   - remote sensing
   max_items: 15
-  enabled: true
+  enabled: false
 - id: noaa_ocean_service
   name: NOAA Ocean Service（暂不启用：需确认 RSS 地址）
   type: rss
@@ -491,15 +491,15 @@ sources:
   - csgpc.org
   date_xpath: "//div[@class='top_about']"
   required_terms:
-  - 测绘
-  - 地理信息
+  - 海洋
   - 遥感
   - 北斗
-  - 海洋
+  - 地理信息
   - 标准
-  - 学术
-  - 论坛
-  - 大赛
+  - 水深
+  - 海底
+  - 测绘装备
+  - 学术交流
   tags:
   - 国内学会
   - 测绘
@@ -515,16 +515,14 @@ sources:
   - sio.org.cn
   title_xpath: ".//p[@class='title']"
   required_terms:
-  - 海洋
   - 海底
   - 深海
-  - 测绘
-  - 遥感
-  - 卫星
-  - 观测
-  - 调查
   - 地形
-  - 数据
+  - 观测
+  - 遥感
+  - 测绘
+  - 声学
+  - 多波束
   tags:
   - 科研院所
   - 海洋科技
@@ -540,15 +538,15 @@ sources:
   - news.hrbeu.edu.cn
   date_xpath: "//div[contains(@class,'article-b')]"
   required_terms:
-  - 海洋
   - 水下
-  - 船舶
-  - 测绘
-  - 遥感
-  - 导航
   - 声呐
   - 极地
   - 深海
+  - 测绘
+  - 遥感
+  - 导航
+  - 海底
+  - 无人
   tags:
   - 高校
   - 海洋工程
@@ -563,6 +561,17 @@ sources:
   allowed_domains:
   - sgg.whu.edu.cn
   title_xpath: ".//span"
+  required_terms:
+  - 测绘
+  - 遥感
+  - 北斗
+  - 地理信息
+  - 空间信息
+  - 激光雷达
+  - 摄影测量
+  - 学术
+  - 论坛
+  - 智能
   tags:
   - 高校
   - 测绘
@@ -579,14 +588,14 @@ sources:
   title_xpath: ".//div[contains(@class,'news_title')]"
   date_xpath: "//span[@class='arti_update']"
   required_terms:
-  - 海洋
   - 深海
   - 极地
   - 遥感
-  - 卫星
+  - 海底
   - 观测
   - 测绘
-  - 工程
+  - 海洋科学
+  - 声学
   tags:
   - 高校
   - 海洋科学
@@ -629,13 +638,15 @@ sources:
   - 地理信息
   - 遥感
   - 北斗
-  - 卫星
-  - 海洋
-  - 水下
   - 激光雷达
   - 点云
+  - 水下
   - 时空
   - GIS
+  - 实景三维
+  - 倾斜摄影
+  - 卫星导航
+  - 海图
   tags:
   - 行业媒体
   - 测绘
