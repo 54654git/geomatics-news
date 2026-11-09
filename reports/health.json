@@ -1,8 +1,8 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T06:39:32.542154+00:00",
+  "checked_at": "2026-11-09T06:47:59.398105+00:00",
   "complete": true,
-  "selected": 20,
+  "selected": 15,
   "sources": [
     {
       "id": "cnr_tech",
@@ -224,8 +224,8 @@
       "id": "google_news_cn_marine",
       "name": "谷歌新闻·中文海洋测绘检索（聚合，广度补充）",
       "status": "正常",
-      "candidates": 4,
-      "recent": 4,
+      "candidates": 3,
+      "recent": 3,
       "detail": "",
       "optional": true
     },
