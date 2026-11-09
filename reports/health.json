@@ -1,6 +1,6 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T04:16:27.126815+00:00",
+  "checked_at": "2026-11-09T04:23:06.911550+00:00",
   "complete": false,
   "selected": 17,
   "sources": [
@@ -10,7 +10,8 @@
       "status": "正常",
       "candidates": 1,
       "recent": 1,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "xinhua_tech",
@@ -18,23 +19,26 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "正常",
-      "candidates": 1,
-      "recent": 1,
-      "detail": ""
+      "status": "失败",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re",
+      "optional": false
     },
     {
       "id": "mnr_ocean",
       "name": "自然资源部·海洋（直接采集）",
-      "status": "正常",
+      "status": "失败",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/hy/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re",
+      "optional": false
     },
     {
       "id": "glut_news",
@@ -42,7 +46,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "cas_research",
@@ -50,7 +55,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "chinanews_rss",
@@ -58,7 +64,8 @@
       "status": "正常",
       "candidates": 1,
       "recent": 1,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "nmdis_news",
@@ -66,7 +73,8 @@
       "status": "正常",
       "candidates": 1,
       "recent": 1,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "fio_research",
@@ -74,7 +82,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "noaa_coast_survey",
@@ -82,7 +91,8 @@
       "status": "正常",
       "candidates": 1,
       "recent": 1,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "gebco_news",
@@ -90,7 +100,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "seabed2030_news",
@@ -98,7 +109,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "gdelt_en_marine",
@@ -106,7 +118,8 @@
       "status": "失败",
       "candidates": 0,
       "recent": 0,
-      "detail": "GDELT HTTP 429 服务端限流，已进入冷却；直连来源继续采集"
+      "detail": "GDELT HTTP 429 服务端限流，已进入冷却；直连来源继续采集",
+      "optional": true
     },
     {
       "id": "hydro_international",
@@ -114,7 +127,8 @@
       "status": "正常",
       "candidates": 8,
       "recent": 8,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "gim_international",
@@ -122,7 +136,8 @@
       "status": "正常",
       "candidates": 6,
       "recent": 6,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "schmidt_ocean",
@@ -130,7 +145,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "copernicus_marine",
@@ -138,7 +154,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "emodnet_news",
@@ -146,7 +163,8 @@
       "status": "正常",
       "candidates": 2,
       "recent": 2,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "csgpc_news",
@@ -154,7 +172,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "sio_research",
@@ -162,7 +181,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "hrbeu_news",
@@ -170,7 +190,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "whu_sgg",
@@ -178,7 +199,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "ouc_news",
@@ -186,7 +208,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "tongji_sgg",
@@ -194,7 +217,8 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     },
     {
       "id": "taibo_news",
@@ -202,8 +226,9 @@
       "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "",
+      "optional": false
     }
   ],
-  "config_hash": "c85517300124da15d8d280acfb134758880e3662f9f3a8714f5fb07ca2249b36"
+  "config_hash": "0558e152bc45b612da91e9df4e7d60b25e001bc72c1be0301384eac2e03cb285"
 }
