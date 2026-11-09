@@ -1,7 +1,7 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T06:32:56.711467+00:00",
-  "complete": false,
+  "checked_at": "2026-11-09T06:39:32.542154+00:00",
+  "complete": true,
   "selected": 20,
   "sources": [
     {
@@ -133,11 +133,11 @@
     {
       "id": "schmidt_ocean",
       "name": "Schmidt Ocean Institute（官方 RSS）",
-      "status": "失败",
+      "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": "403 Client Error: Forbidden for url: https://schmidtocean.org/feed/",
-      "optional": false
+      "detail": "",
+      "optional": true
     },
     {
       "id": "copernicus_marine",
@@ -233,11 +233,11 @@
       "id": "google_news_en_marine",
       "name": "谷歌新闻·英文海洋测绘检索（聚合，广度补充）",
       "status": "正常",
-      "candidates": 5,
-      "recent": 5,
+      "candidates": 4,
+      "recent": 4,
       "detail": "",
       "optional": true
     }
   ],
-  "config_hash": "6351906ece1b242355050aa1e1223ba6f89bbdcb4567f60742dabeea6c73494f"
+  "config_hash": "6e56eb0e9fb70cd5edb3717b0a91cd10f8aa334b9118a265f3e8fb8277a6c345"
 }
