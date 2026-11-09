@@ -1,6 +1,6 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T03:58:36.268003+00:00",
+  "checked_at": "2026-11-09T04:05:35.666189+00:00",
   "complete": false,
   "selected": 29,
   "sources": [
@@ -56,8 +56,8 @@
       "id": "chinanews_rss",
       "name": "中国新闻网·即时新闻 RSS",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 1,
+      "recent": 1,
       "detail": ""
     },
     {
@@ -103,18 +103,10 @@
     {
       "id": "gdelt_en_marine",
       "name": "GDELT 国际海洋测绘新闻（限流备用，试运行）",
-      "status": "正常",
-      "candidates": 1,
-      "recent": 1,
-      "detail": ""
-    },
-    {
-      "id": "esa_earth_observation",
-      "name": "ESA Earth Observation",
       "status": "失败",
       "candidates": 0,
       "recent": 0,
-      "detail": "404 Client Error: Not Found for url: https://www.esa.int/rssfeed/Our_Activities/Observing_the_Earth"
+      "detail": "GDELT HTTP 429 服务端限流，已进入冷却；直连来源继续采集"
     },
     {
       "id": "hydro_international",
@@ -160,8 +152,8 @@
       "id": "csgpc_news",
       "name": "中国测绘学会·学会动态（直接采集）",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     },
     {
@@ -176,24 +168,24 @@
       "id": "hrbeu_news",
       "name": "哈尔滨工程大学·要闻（直接采集）",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     },
     {
       "id": "whu_sgg",
       "name": "武汉大学测绘学院·学院新闻（直接采集）",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 1,
+      "recent": 1,
       "detail": ""
     },
     {
       "id": "ouc_news",
       "name": "中国海洋大学·海大要闻（直接采集）",
       "status": "正常",
-      "candidates": 5,
-      "recent": 5,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     },
     {
@@ -208,10 +200,10 @@
       "id": "taibo_news",
       "name": "泰伯网·测绘地理信息行业媒体（直接采集）",
       "status": "正常",
-      "candidates": 5,
-      "recent": 5,
+      "candidates": 2,
+      "recent": 2,
       "detail": ""
     }
   ],
-  "config_hash": "ab778992e6f4a8241ccdacab48242f04a3541b68c4f0edffbf5661b5023e567b"
+  "config_hash": "358f7fd2250c697ace409b85cbe14cc9fef74ac1abb8b5a180dd26d0bab7c53d"
 }
