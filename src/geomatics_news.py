@@ -50,6 +50,8 @@ GDELT_COOLDOWN_UNTIL = 0.0
 GOOGLE_NEWS_ENDPOINT = "https://news.google.com/rss/search"
 # Ceiling on how many items one source may contribute to a single report.
 MAX_ITEMS_PER_SOURCE = 3
+# Below this the per-source cap is relaxed; a very quiet week still needs a report.
+MIN_REPORT_ITEMS = 8
 REPORT_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
@@ -61,8 +63,12 @@ KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
         "hydrography", "hydrographic survey", "bathymetric", "echo sounder",
         "side-scan sonar", "swath", "seabed mapping", "chart datum",
         "water depth", "depth sounding", "seabed geodetic",
+        # Equipment and project wording: without these, a survey vessel contract
+        # or a seabed survey campaign scores zero and never reaches the report.
+        "测量船", "勘察", "海山", "海洋调查", "水下测绘", "survey vessel",
+        "seabed survey", "site survey", "ocean survey",
     ),
-    "测绘": ("测绘", "地理测量", "geospatial", "geomatics", "surveying", "mapping", "cartography",
+    "测绘": ("测绘", "地理测量", "空间地理信息", "geospatial", "geomatics", "surveying", "mapping", "cartography",
              "geodesy", "geodetic", "land survey", "map production", "spatial data"),
     "遥感": ("遥感", "remote sensing", "earth observation", "satellite", "卫星", "insar",
              "satellite altimetry", "ocean colour", "ocean color", "sar imagery"),
@@ -578,6 +584,35 @@ def collect_google_news(source: dict[str, Any], session: requests.Session, fetch
     return articles
 
 
+PROPER_NAME = re.compile(r"[《“\"]([^》”\"]{2,20})[》”\"]")
+
+
+def proper_names(title: str) -> set[str]:
+    """Quoted titles and product names, the strongest hint of a shared event."""
+    return {name.strip() for name in PROPER_NAME.findall(title) if len(name.strip()) >= 2}
+
+
+def dedupe_aggregated(items: list[Article], existing: list[Article]) -> list[Article]:
+    """Drop aggregated items that restate something already collected.
+
+    A publisher's own headline and a rewritten aggregator headline for the same
+    event score as low as 0.20 on string similarity, so the usual 88% threshold
+    misses them entirely. A shared quoted name (e.g. 《海山图志》) is reliable,
+    and 60% similarity catches near-verbatim rewrites.
+    """
+    kept: list[Article] = []
+    for article in items:
+        names = proper_names(article.title)
+        duplicate = any(
+            (names & proper_names(other.title))
+            or ratio(article.title.lower(), other.title.lower()) >= 60
+            for other in existing + kept
+        )
+        if not duplicate:
+            kept.append(article)
+    return kept
+
+
 def keyword_hits(text: str, words: Iterable[str]) -> int:
     # The policy phrase 向海图强 does not mean nautical chart (海图).
     lowered = text.lower().replace("向海图强", "海洋发展")
@@ -749,6 +784,7 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
                 items = collect_gdelt(source, session, fetch_content, since_days)
             elif kind == "google_news":
                 items = collect_google_news(source, session, fetch_content, since_days)
+                items = dedupe_aggregated(items, all_articles)
             elif kind == "html":
                 items, errors = collect_html(source, session, fetch_content, since_days)
                 if errors:
@@ -894,9 +930,11 @@ def report_candidates(conn: sqlite3.Connection, report_dir: Path, since_days: in
         kept.append(row)
         if len(kept) >= limit:
             return kept
-    # A quiet week with few active sources must still fill the page.
+    # Only top up when the capped selection is too thin to be a usable report.
+    # Refilling to `limit` would cancel the cap entirely, since the high-volume
+    # feeds always have spare rows waiting in `deferred`.
     for row in deferred:
-        if len(kept) >= limit:
+        if len(kept) >= min(limit, MIN_REPORT_ITEMS):
             break
         if any(normalize_url(row["url"]) == old["url"] or ratio(row["title"].lower(), old["title"].lower()) >= 88
                for old in previous + kept):
