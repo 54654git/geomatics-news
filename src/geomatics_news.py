@@ -911,14 +911,21 @@ def report_candidates(conn: sqlite3.Connection, report_dir: Path, since_days: in
     day = datetime.fromisoformat(date_text)
     week_start = (day - timedelta(days=day.weekday())).date().isoformat()
     previous = list(conn.execute("SELECT url, title FROM report_items WHERE report_date < ?", (week_start,)))
+    previous_names = [proper_names(old["title"]) for old in previous]
     # Filter before limiting; otherwise old headlines can occupy all available slots.
     rows = rows_for_report(conn, since_days, -1)
     kept: list[sqlite3.Row] = []
+    kept_names: list[set[str]] = []
     deferred: list[sqlite3.Row] = []
     per_source: dict[str, int] = {}
     for row in rows:
-        if any(normalize_url(row["url"]) == old["url"] or ratio(row["title"].lower(), old["title"].lower()) >= 88
-               for old in previous + kept):
+        names = proper_names(row["title"])
+        if any(normalize_url(row["url"]) == old["url"]
+               # A rewritten aggregator headline restating a publisher's own story
+               # scores far below 88% similarity, but keeps the quoted name.
+               or (names & other_names)
+               or ratio(row["title"].lower(), old["title"].lower()) >= 88
+               for old, other_names in zip(previous + kept, previous_names + kept_names)):
             continue
         # Two prolific trade feeds otherwise fill the whole week: English titles
         # match more keyword groups than short Chinese ones, so without a cap
@@ -928,6 +935,7 @@ def report_candidates(conn: sqlite3.Connection, report_dir: Path, since_days: in
             continue
         per_source[row["source_id"]] = per_source.get(row["source_id"], 0) + 1
         kept.append(row)
+        kept_names.append(names)
         if len(kept) >= limit:
             return kept
     # Only top up when the capped selection is too thin to be a usable report.
@@ -936,10 +944,14 @@ def report_candidates(conn: sqlite3.Connection, report_dir: Path, since_days: in
     for row in deferred:
         if len(kept) >= min(limit, MIN_REPORT_ITEMS):
             break
-        if any(normalize_url(row["url"]) == old["url"] or ratio(row["title"].lower(), old["title"].lower()) >= 88
-               for old in previous + kept):
+        names = proper_names(row["title"])
+        if any(normalize_url(row["url"]) == old["url"]
+               or (names & other_names)
+               or ratio(row["title"].lower(), old["title"].lower()) >= 88
+               for old, other_names in zip(previous + kept, previous_names + kept_names)):
             continue
         kept.append(row)
+        kept_names.append(names)
     return kept
 
 
