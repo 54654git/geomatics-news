@@ -14,8 +14,10 @@ import requests
 
 
 HOST = "www.mnr.gov.cn"
-RESOLVERS = ("https://dns.alidns.com/resolve", "https://dns.google/resolve",
-             "https://cloudflare-dns.com/dns-query")
+# 依次尝试：境外 DoH 优先，因为本脚本只运行在 GitHub 的境外 runner 上；
+# 阿里 DoH 返回的是国内优化 IP，runner 未必可达，放最后兜底。
+RESOLVERS = ("https://dns.google/resolve", "https://cloudflare-dns.com/dns-query",
+             "https://doh.pub/dns-query", "https://dns.alidns.com/resolve")
 
 
 def public_addresses(payload: dict) -> list[str]:
