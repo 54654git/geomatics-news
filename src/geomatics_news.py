@@ -679,7 +679,8 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
     for source in sources:
         logging.info("采集 %s", source.get("name", source["id"]))
         status = {"id": source["id"], "name": source.get("name", source["id"]), "status": "正常",
-                  "candidates": 0, "recent": 0, "detail": ""}
+                  "candidates": 0, "recent": 0, "detail": "",
+                  "optional": bool(source.get("optional", False))}
         try:
             kind = source.get("type", "rss")
             if kind == "gdelt":
@@ -860,7 +861,7 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
     last_run = conn.execute("SELECT checked_at, sources_json, config_hash FROM collection_runs ORDER BY id DESC LIMIT 1").fetchone()
     if last_run:
         statuses = json.loads(last_run["sources_json"])
-        incomplete = [s["name"] for s in statuses if s["status"] != "正常"]
+        incomplete = [s["name"] for s in statuses if s["status"] != "正常" and not s.get("optional")]
         lines.extend([f"> 本期入选 {len(rows)} 条，其中商业市场资讯 {len(commercial)} 条。", ""])
         if incomplete:
             lines.extend(["> **采集覆盖不完整：** " + "、".join(incomplete) + "。详情见文末来源状态。", ""])
@@ -949,7 +950,8 @@ def make_report(db: Path, report_dir: Path, since_days: int, limit: int, transla
                      (date_text, normalize_url(row["url"]), row["title"]))
     statuses = json.loads(last_run["sources_json"]) if last_run else []
     health = {"report_date": date_text, "checked_at": last_run["checked_at"] if last_run else None,
-              "complete": bool(statuses) and all(s["status"] == "正常" for s in statuses),
+              "complete": bool(statuses) and all(s["status"] == "正常" for s in statuses
+                                                if not s.get("optional")),
               "selected": len(rows), "sources": statuses,
               "config_hash": last_run["config_hash"] if last_run else ""}
     (report_dir / "health.json").write_text(json.dumps(health, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

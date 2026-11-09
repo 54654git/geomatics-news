@@ -179,6 +179,21 @@ class SourceTests(unittest.TestCase):
             self.assertIn("HTTP 503", report)
             self.assertIn("采集覆盖不完整", report)
 
+    def test_optional_source_failure_does_not_break_coverage(self):
+        """备用源（如 GDELT 限流）失败不应让当天报告被判为不完整。"""
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            config = root / "sources.yaml"
+            optional = dict(id="gdelt_opt", type="rss", url="https://gdelt.invalid/", optional=True)
+            config.write_text(yaml.safe_dump({"sources": [self.source, optional]}))
+            with patch.object(g, "collect_html", return_value=([self.article(self.today)], [])), \
+                    patch.object(g, "collect_feed", side_effect=g.SourceError("GDELT HTTP 429")):
+                g.collect(config, root / "news.db", 8, False)
+            report_path = g.make_report(root / "news.db", root / "reports", 8, 30, False)
+            health = json.loads((root / "reports" / "health.json").read_text(encoding="utf-8"))
+            self.assertTrue(health["complete"])
+            self.assertNotIn("采集覆盖不完整", report_path.read_text(encoding="utf-8"))
+
     def test_platform_label_cannot_make_an_arbitrary_article_trusted(self):
         article = self.article(self.today)
         article.source_name = "NASA 央广网"

@@ -252,6 +252,7 @@ sources:
   - multibeam
   max_items: 15
   max_content_items: 5
+  optional: true
   enabled: true
 - id: gdelt_en_ocean_policy
   name: GDELT 国际海洋规划与标准新闻（限流备用，默认关闭）
