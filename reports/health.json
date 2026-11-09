@@ -1,8 +1,8 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T04:27:58.525893+00:00",
-  "complete": true,
-  "selected": 17,
+  "checked_at": "2026-11-09T06:32:56.711467+00:00",
+  "complete": false,
+  "selected": 20,
   "sources": [
     {
       "id": "cnr_tech",
@@ -62,8 +62,8 @@
       "id": "chinanews_rss",
       "name": "中国新闻网·即时新闻 RSS",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 0,
+      "recent": 0,
       "detail": "",
       "optional": false
     },
@@ -113,15 +113,6 @@
       "optional": false
     },
     {
-      "id": "gdelt_en_marine",
-      "name": "GDELT 国际海洋测绘新闻（限流备用，试运行）",
-      "status": "失败",
-      "candidates": 0,
-      "recent": 0,
-      "detail": "GDELT HTTP 429 服务端限流，已进入冷却；直连来源继续采集",
-      "optional": true
-    },
-    {
       "id": "hydro_international",
       "name": "Hydro International（国际海道测量行业媒体 RSS）",
       "status": "正常",
@@ -142,10 +133,10 @@
     {
       "id": "schmidt_ocean",
       "name": "Schmidt Ocean Institute（官方 RSS）",
-      "status": "正常",
+      "status": "失败",
       "candidates": 0,
       "recent": 0,
-      "detail": "",
+      "detail": "403 Client Error: Forbidden for url: https://schmidtocean.org/feed/",
       "optional": false
     },
     {
@@ -228,7 +219,25 @@
       "recent": 0,
       "detail": "",
       "optional": false
+    },
+    {
+      "id": "google_news_cn_marine",
+      "name": "谷歌新闻·中文海洋测绘检索（聚合，广度补充）",
+      "status": "正常",
+      "candidates": 4,
+      "recent": 4,
+      "detail": "",
+      "optional": true
+    },
+    {
+      "id": "google_news_en_marine",
+      "name": "谷歌新闻·英文海洋测绘检索（聚合，广度补充）",
+      "status": "正常",
+      "candidates": 5,
+      "recent": 5,
+      "detail": "",
+      "optional": true
     }
   ],
-  "config_hash": "0558e152bc45b612da91e9df4e7d60b25e001bc72c1be0301384eac2e03cb285"
+  "config_hash": "6351906ece1b242355050aa1e1223ba6f89bbdcb4567f60742dabeea6c73494f"
 }
