@@ -55,13 +55,21 @@ KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
         "声呐", "海底地形", "海图", "海洋空间信息", "bathymetry", "hydrographic",
         "multibeam", "single beam", "sonar", "seafloor mapping", "ocean mapping",
         "underwater survey", "nautical chart",
+        "hydrography", "hydrographic survey", "bathymetric", "echo sounder",
+        "side-scan sonar", "swath", "seabed mapping", "chart datum",
+        "water depth", "depth sounding", "seabed geodetic",
     ),
-    "测绘": ("测绘", "地理测量", "geospatial", "geomatics", "surveying", "mapping", "cartography"),
-    "遥感": ("遥感", "remote sensing", "earth observation", "satellite", "卫星", "insar"),
+    "测绘": ("测绘", "地理测量", "geospatial", "geomatics", "surveying", "mapping", "cartography",
+             "geodesy", "geodetic", "land survey", "map production", "spatial data"),
+    "遥感": ("遥感", "remote sensing", "earth observation", "satellite", "卫星", "insar",
+             "satellite altimetry", "ocean colour", "ocean color", "sar imagery"),
     "摄影测量": ("摄影测量", "photogrammetry", "三维重建", "3d reconstruction", "stereo"),
-    "GNSS/北斗": ("gnss", "gps", "beidou", "北斗", "rtk", "定位", "navigation"),
-    "激光雷达": ("lidar", "laser scanning", "激光雷达", "点云", "point cloud"),
-    "GIS/时空": ("gis", "地理信息", "spatiotemporal", "时空", "digital twin", "数字孪生"),
+    "GNSS/北斗": ("gnss", "gps", "beidou", "北斗", "rtk", "定位", "navigation",
+                  "precise positioning", "ppp", "gnss-r"),
+    "激光雷达": ("lidar", "laser scanning", "激光雷达", "点云", "point cloud",
+                 "bathymetric lidar", "airborne lidar"),
+    "GIS/时空": ("gis", "地理信息", "spatiotemporal", "时空", "digital twin", "数字孪生",
+                 "spatial data infrastructure", "geodatabase"),
     "人工智能": ("artificial intelligence", "machine learning", "deep learning", "人工智能", "机器学习"),
 }
 
@@ -79,6 +87,7 @@ POLICY_GROUPS: dict[str, tuple[str, ...]] = {
         "iho", "s-100", "s-102", "seabed 2030", "gebco", "emodnet",
         "digital twin ocean", "mission ocean", "blue economy",
         "marine spatial planning", "ocean mapping strategy", "hydrographic strategy",
+        "eez", "exclusive economic zone", "marine policy", "ocean accounting",
     ),
 }
 
@@ -86,6 +95,7 @@ FUTURE_GROUPS: dict[str, tuple[str, ...]] = {
     "智能无人测量": (
         "无人船", "无人艇", "自主航行", "自主测量", "无人测绘", "auv", "usv", "uuv",
         "autonomous surface vessel", "autonomous underwater vehicle", "robotic survey",
+        "uncrewed surface vessel", "unmanned survey vessel", "autonomous survey", "rov",
     ),
     "激光与声学测深": (
         "水深激光雷达", "激光雷达测深", "bathymetric lidar", "bathymetry", "水深测量",
@@ -100,7 +110,8 @@ FUTURE_GROUPS: dict[str, tuple[str, ...]] = {
         "数字孪生", "digital twin", "时空大数据", "水下三维", "智能解译",
     ),
     "数据标准与精度控制": (
-        "s-100", "s-102", "数字水深", "海图标准", "质量控制", "精度评定", "误差",
+        "s-100", "s-102", "s-101", "s-57", "enc", "electronic navigational chart",
+        "数字水深", "海图标准", "质量控制", "精度评定", "误差",
         "不确定度", "标准化", "dataset", "accuracy assessment", "uncertainty",
     ),
     "国产装备与工程化": (
@@ -133,6 +144,8 @@ TRUSTED_SOURCE_DOMAINS = (
     "gov.cn", "edu.cn", "edu", "nature.com", "science.org", "xinhuanet.com",
     "people.com.cn", "cctv.com", "cnr.cn", "news.cn", "chinanews.com.cn", "cas.cn",
     "nmdis.org.cn", "gebco.net", "fio.org.cn", "seabed2030.org",
+    "pric.org.cn", "sio.org.cn", "csgpc.org", "schmidtocean.org",
+    "copernicus.eu", "ec.europa.eu",
 )
 
 
@@ -342,7 +355,7 @@ def collect_html(source: dict[str, Any], session: requests.Session, fetch_conten
         if not re.search(source["article_url_pattern"], url):
             continue
         article_links += 1
-        title_nodes = link.xpath(".//strong | .//h5 | .//h4 | .//h2")
+        title_nodes = link.xpath(source.get("title_xpath", ".//strong | .//h5 | .//h4 | .//h2"))
         title = clean_text(link.get("title") or (title_nodes[0].text_content() if title_nodes else link.text_content()))
         if len(title) < 6 or not required_match(source, title):
             continue

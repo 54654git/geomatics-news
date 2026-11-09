@@ -232,7 +232,7 @@ sources:
   max_content_items: 5
   enabled: false
 - id: gdelt_en_marine
-  name: GDELT 国际海洋测绘新闻（限流备用，默认关闭）
+  name: GDELT 国际海洋测绘新闻（限流备用，试运行）
   type: gdelt
   query: ("hydrographic survey" OR bathymetry OR multibeam OR sonar OR "ocean mapping" OR AUV)
   language: English
@@ -252,7 +252,7 @@ sources:
   - multibeam
   max_items: 15
   max_content_items: 5
-  enabled: false
+  enabled: true
 - id: gdelt_en_ocean_policy
   name: GDELT 国际海洋规划与标准新闻（限流备用，默认关闭）
   type: gdelt
@@ -361,3 +361,284 @@ sources:
   - bathymetry
   - ocean
   enabled: false
+
+# ---------------------------------------------------------------------------
+# 2026-11 扩充：国际行业媒体与科研机构（官方 RSS，无正文抓取开销）
+# 英文源必须配 required_terms（按标题匹配），否则宽泛条目会稀释中文精选。
+# ---------------------------------------------------------------------------
+- id: hydro_international
+  name: Hydro International（国际海道测量行业媒体 RSS）
+  type: rss
+  url: https://www.hydro-international.com/rss
+  required_terms:
+  - hydrograph
+  - bathymetr
+  - multibeam
+  - sonar
+  - survey
+  - chart
+  - mapping
+  - seabed
+  - seafloor
+  - auv
+  - usv
+  - lidar
+  - s-100
+  - s-102
+  - ocean
+  tags:
+  - 行业媒体
+  - 海洋测绘
+  - 海道测量
+  max_items: 12
+  request_interval: 1
+  enabled: true
+- id: gim_international
+  name: GIM International（国际测绘行业媒体 RSS）
+  type: rss
+  url: https://www.gim-international.com/rss
+  required_terms:
+  - survey
+  - mapping
+  - geospatial
+  - geomatics
+  - lidar
+  - photogrammetr
+  - gnss
+  - gis
+  - earth observation
+  - digital twin
+  - point cloud
+  - bathymetr
+  - hydrograph
+  - geodesy
+  tags:
+  - 行业媒体
+  - 测绘
+  - 地理信息
+  max_items: 12
+  request_interval: 1
+  enabled: true
+- id: schmidt_ocean
+  name: Schmidt Ocean Institute（官方 RSS）
+  type: rss
+  url: https://schmidtocean.org/feed/
+  required_terms:
+  - seafloor
+  - mapping
+  - bathymetr
+  - rov
+  - survey
+  - expedition
+  - deep sea
+  - coral
+  tags:
+  - 科研机构
+  - 海底测绘
+  max_items: 10
+  request_interval: 1
+  enabled: true
+- id: copernicus_marine
+  name: Copernicus Marine（欧盟海洋观测官方 RSS）
+  type: rss
+  url: https://marine.copernicus.eu/rss.xml
+  required_terms:
+  - ocean
+  - marine
+  - satellite
+  - sea ice
+  - sea level
+  - forecast
+  - data
+  - arctic
+  tags:
+  - 国际组织
+  - 海洋数据
+  max_items: 10
+  request_interval: 1
+  enabled: true
+- id: emodnet_news
+  name: EMODnet 欧洲海洋观测数据网（官方 RSS）
+  type: rss
+  url: https://emodnet.ec.europa.eu/en/rss.xml
+  required_terms:
+  - seabed
+  - bathymetr
+  - data
+  - mapping
+  - habitat
+  - ocean
+  - marine
+  - hydrograph
+  tags:
+  - 国际组织
+  - 海洋数据
+  - 海道测量
+  max_items: 10
+  request_interval: 1
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# 2026-11 扩充：国内学会、院所、政务与行业媒体（HTML 直接采集）
+# title_xpath / date_xpath 按各站实际结构配置，改版时需同步调整。
+# ---------------------------------------------------------------------------
+- id: csgpc_news
+  name: 中国测绘学会·学会动态（直接采集）
+  type: html
+  url: http://www.csgpc.org/list/107.html
+  article_url_pattern: /detail/\d+\.html
+  allowed_domains:
+  - csgpc.org
+  date_xpath: "//div[@class='top_about']"
+  required_terms:
+  - 测绘
+  - 地理信息
+  - 遥感
+  - 北斗
+  - 海洋
+  - 标准
+  - 学术
+  - 论坛
+  - 大赛
+  tags:
+  - 国内学会
+  - 测绘
+  max_items: 8
+  request_interval: 1
+  enabled: true
+- id: sio_research
+  name: 自然资源部第二海洋研究所·科研成果（直接采集）
+  type: html
+  url: https://www.sio.org.cn/yjcg.html
+  article_url_pattern: /a/yjcg/\d+\.html
+  allowed_domains:
+  - sio.org.cn
+  title_xpath: ".//p[@class='title']"
+  required_terms:
+  - 海洋
+  - 海底
+  - 深海
+  - 测绘
+  - 遥感
+  - 卫星
+  - 观测
+  - 调查
+  - 地形
+  - 数据
+  tags:
+  - 科研院所
+  - 海洋科技
+  max_items: 8
+  request_interval: 1
+  enabled: true
+- id: hrbeu_news
+  name: 哈尔滨工程大学·要闻（直接采集）
+  type: html
+  url: https://news.hrbeu.edu.cn/xw/yw.htm
+  article_url_pattern: /info/\d+/\d+\.htm
+  allowed_domains:
+  - news.hrbeu.edu.cn
+  date_xpath: "//div[contains(@class,'article-b')]"
+  required_terms:
+  - 海洋
+  - 水下
+  - 船舶
+  - 测绘
+  - 遥感
+  - 导航
+  - 声呐
+  - 极地
+  - 深海
+  tags:
+  - 高校
+  - 海洋工程
+  max_items: 8
+  request_interval: 1
+  enabled: true
+- id: whu_sgg
+  name: 武汉大学测绘学院·学院新闻（直接采集）
+  type: html
+  url: https://www.sgg.whu.edu.cn/xwzny/xyxw.htm
+  article_url_pattern: /info/\d+/\d+\.htm
+  allowed_domains:
+  - sgg.whu.edu.cn
+  title_xpath: ".//span"
+  tags:
+  - 高校
+  - 测绘
+  max_items: 8
+  request_interval: 1
+  enabled: true
+- id: ouc_news
+  name: 中国海洋大学·海大要闻（直接采集）
+  type: html
+  url: https://news.ouc.edu.cn/hdyw_91/list.htm
+  article_url_pattern: /\d{4}/\d{4}/c\d+a\d+/page\.htm
+  allowed_domains:
+  - news.ouc.edu.cn
+  title_xpath: ".//div[contains(@class,'news_title')]"
+  date_xpath: "//span[@class='arti_update']"
+  required_terms:
+  - 海洋
+  - 深海
+  - 极地
+  - 遥感
+  - 卫星
+  - 观测
+  - 测绘
+  - 工程
+  tags:
+  - 高校
+  - 海洋科学
+  max_items: 8
+  request_interval: 1
+  enabled: true
+- id: tongji_sgg
+  name: 同济大学测绘与地理信息学院（直接采集）
+  type: html
+  url: https://celiang.tongji.edu.cn/
+  article_url_pattern: /info/\d+/\d+\.htm
+  allowed_domains:
+  - celiang.tongji.edu.cn
+  date_xpath: "//div[@class='singlepage-time']"
+  title_xpath: ".//h3"
+  required_terms:
+  - 测绘
+  - 地理信息
+  - 遥感
+  - 北斗
+  - 导航
+  - 空间信息
+  - 学术
+  - 论坛
+  tags:
+  - 高校
+  - 测绘
+  max_items: 8
+  request_interval: 1
+  enabled: true
+- id: taibo_news
+  name: 泰伯网·测绘地理信息行业媒体（直接采集）
+  type: html
+  url: https://www.taibo.cn/
+  article_url_pattern: /p/\d+$
+  allowed_domains:
+  - www.taibo.cn
+  required_terms:
+  - 测绘
+  - 地理信息
+  - 遥感
+  - 北斗
+  - 卫星
+  - 海洋
+  - 水下
+  - 激光雷达
+  - 点云
+  - 时空
+  - GIS
+  tags:
+  - 行业媒体
+  - 测绘
+  max_items: 10
+  request_interval: 1
+  enabled: true
