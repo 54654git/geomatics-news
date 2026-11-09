@@ -440,6 +440,9 @@ sources:
   - 海底测绘
   max_items: 10
   request_interval: 1
+  # Cloudflare 拦截机房 IP：本地 200 正常，GitHub runner 持续 403（2026-11-09 实测）。
+  # 标为 optional，避免它单独把 complete 打成 false 而让周一 16 个时点全部重跑。
+  optional: true
   enabled: true
 - id: copernicus_marine
   name: Copernicus Marine（欧盟海洋观测官方 RSS）

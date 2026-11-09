@@ -48,6 +48,8 @@ MYMEMORY_ENDPOINT = "https://api.mymemory.translated.net/get"
 GDELT_LAST_REQUEST = 0.0
 GDELT_COOLDOWN_UNTIL = 0.0
 GOOGLE_NEWS_ENDPOINT = "https://news.google.com/rss/search"
+# Ceiling on how many items one source may contribute to a single report.
+MAX_ITEMS_PER_SOURCE = 3
 REPORT_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
@@ -875,14 +877,31 @@ def report_candidates(conn: sqlite3.Connection, report_dir: Path, since_days: in
     previous = list(conn.execute("SELECT url, title FROM report_items WHERE report_date < ?", (week_start,)))
     # Filter before limiting; otherwise old headlines can occupy all available slots.
     rows = rows_for_report(conn, since_days, -1)
-    kept = []
+    kept: list[sqlite3.Row] = []
+    deferred: list[sqlite3.Row] = []
+    per_source: dict[str, int] = {}
     for row in rows:
         if any(normalize_url(row["url"]) == old["url"] or ratio(row["title"].lower(), old["title"].lower()) >= 88
                for old in previous + kept):
             continue
+        # Two prolific trade feeds otherwise fill the whole week: English titles
+        # match more keyword groups than short Chinese ones, so without a cap
+        # domestic coverage silently disappears from the report.
+        if per_source.get(row["source_id"], 0) >= MAX_ITEMS_PER_SOURCE:
+            deferred.append(row)
+            continue
+        per_source[row["source_id"]] = per_source.get(row["source_id"], 0) + 1
         kept.append(row)
         if len(kept) >= limit:
+            return kept
+    # A quiet week with few active sources must still fill the page.
+    for row in deferred:
+        if len(kept) >= limit:
             break
+        if any(normalize_url(row["url"]) == old["url"] or ratio(row["title"].lower(), old["title"].lower()) >= 88
+               for old in previous + kept):
+            continue
+        kept.append(row)
     return kept
 
 

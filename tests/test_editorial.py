@@ -54,6 +54,30 @@ class EditorialTests(unittest.TestCase):
             self.assertEqual(g.report_candidates(conn, root, 8, 30, date), [])
             conn.close()
 
+    def test_one_prolific_feed_cannot_fill_all_slots(self):
+        """Two trade feeds once supplied 14 of 20 items and hid domestic coverage."""
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            conn = g.init_db(root / "news.db")
+            # Titles must differ enough to survive the 88% similarity de-duplication.
+            titles = ["多波束测深系统完成验收", "海道测量船正式交付", "水下测绘机器人完成试验",
+                      "声呐基阵研制取得突破", "海图数据更新服务上线"]
+            articles = []
+            for index, title in enumerate(titles):
+                article = self.article(title, url=f"https://hydro.example/{index}")
+                article.source_id = "hydro"
+                articles.append(article)
+            domestic = self.article("海底地形三维建模通过评审", url="https://www.mnr.gov.cn/news/9")
+            domestic.source_id = "mnr"
+            articles.append(domestic)
+            g.save_articles(conn, articles)
+            g.recalculate_scores(conn)
+            rows = g.report_candidates(conn, root, 8, 4, datetime.now(g.REPORT_TIMEZONE).date().isoformat())
+            self.assertEqual(len(rows), 4)
+            self.assertEqual(sum(1 for row in rows if row["source_id"] == "hydro"), 3)
+            self.assertEqual(sum(1 for row in rows if row["source_id"] == "mnr"), 1)
+            conn.close()
+
     def test_existing_markdown_history_is_imported(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
