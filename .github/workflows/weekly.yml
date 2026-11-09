@@ -2,20 +2,25 @@ name: Weekly Geomatics News
 
 on:
   schedule:
-    # UTC：北京时间周一 08:17 到 23:17，每小时一个机会。
-    # GitHub 的 schedule 会延迟数小时甚至漏触发（2026-10-19 延迟 7.4 小时，
-    # 2026-10-26 首槽直接没跑），所以用多个时点叠加容错。
-    # 每次触发都会先跑 scripts/report_due.py：当天报告已齐全就秒退，成本约 1 分钟。
-    # 避开整点的 :17，减少 GitHub 高峰调度压力。
-    - cron: "17 0-15 * * 1"
+    # Beijing Mon-Wed 08:17, 10:47, 13:23. Tue/Wed can catch up the same week.
+    - cron: "17 0 * * 1-3"
+    - cron: "47 2 * * 1-3"
+    - cron: "23 5 * * 1-3"
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Force regeneration even if this period is complete"
+        type: boolean
+        default: false
+      week_of:
+        description: "Optional report Monday (YYYY-MM-DD); blank = current week"
+        type: string
+        default: ""
 
 env:
   TZ: Asia/Shanghai
-
 permissions:
   contents: write
-
 concurrency:
   group: weekly-geomatics-${{ github.ref }}
   cancel-in-progress: false
@@ -25,33 +30,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout
+      - name: Checkout latest branch
         uses: actions/checkout@v4
         with:
-          # Re-runs must collect with the latest source configuration and database.
           ref: ${{ github.ref_name }}
           fetch-depth: 0
 
-      - name: Check whether today's report needs generating
+      - name: Check report period and bounded retry
         id: due
         env:
-          TRIGGER_EVENT: ${{ github.event_name }}
+          FORCE: ${{ inputs.force }}
+          WEEK_OF: ${{ inputs.week_of }}
+        shell: bash
         run: |
-          report="reports/weekly-$(TZ=Asia/Shanghai date +%F).md"
-          # Ubuntu runner includes Python 3; this helper uses only its standard library.
-          due=$(python3 scripts/report_due.py)
-          weekday=$(TZ=Asia/Shanghai date +%u)
-          if [ "$TRIGGER_EVENT" = "schedule" ] && [ "$weekday" != "1" ]; then
-            # 定时任务可能被延迟到周二才真正执行；此时不能按「今天」生成周报。
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Scheduled run drifted past Monday (Beijing). Skipped so no off-week report is created." >> "$GITHUB_STEP_SUMMARY"
-          elif [ "$TRIGGER_EVENT" = "schedule" ] && [ "$due" = "false" ]; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Today's report has complete source coverage. Scheduled backup skipped." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "Generating report: $report (trigger: $TRIGGER_EVENT)" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          period=$(python3 -c 'import os; from src.periods import report_period; print(report_period(week_of=os.environ.get("WEEK_OF") or None)["id"])')
+          args=(--week-of "$period")
+          if [ "$FORCE" = "true" ]; then args+=(--force); fi
+          due=$(python3 scripts/report_due.py "${args[@]}")
+          echo "period=$period" >> "$GITHUB_OUTPUT"
+          echo "run=$due" >> "$GITHUB_OUTPUT"
+          echo "Report period: $period; regeneration: $due; force: ${FORCE:-false}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Set up Python
         if: steps.due.outputs.run == 'true'
@@ -60,37 +58,31 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install dependencies
+      - name: Install dependencies and test
         if: steps.due.outputs.run == 'true'
-        run: python -m pip install -r requirements.txt
+        run: |
+          python -m pip install -r requirements.txt
+          python -m unittest discover -s tests -v
 
-      - name: Verify source parsing and date filters
-        if: steps.due.outputs.run == 'true'
-        run: python -m unittest discover -s tests -v
-
-      - name: Check ministry DNS and try HTTPS DNS if needed
+      - name: Verify ministry route in disposable runner only
         if: steps.due.outputs.run == 'true'
         shell: bash
         run: |
-          if timeout 15s getent ahostsv4 www.mnr.gov.cn; then
-            echo "Ministry DNS resolved normally."
+          if curl --fail --silent --head --connect-timeout 5 --max-time 12 https://www.mnr.gov.cn/dt/ch/ > /dev/null; then
+            echo "Ministry HTTPS route available."
           else
-            echo "Default resolver failed; querying public DNS over HTTPS."
             python scripts/resolve_mnr.py > "$RUNNER_TEMP/mnr-hosts"
-            if [ -s "$RUNNER_TEMP/mnr-hosts" ]; then
-              sudo tee -a /etc/hosts < "$RUNNER_TEMP/mnr-hosts"
-            fi
-            if ! timeout 15s getent ahostsv4 www.mnr.gov.cn; then
-              echo "::warning::Ministry DNS remains unavailable. Other official sources will still be collected."
-            fi
+            if [ -s "$RUNNER_TEMP/mnr-hosts" ]; then sudo tee -a /etc/hosts < "$RUNNER_TEMP/mnr-hosts"; fi
           fi
 
-      - name: Collect, score and report
+      - name: Collect and generate fixed-period report
         if: steps.due.outputs.run == 'true'
-        run: python src/geomatics_news.py run --since-days 8 --limit 30
+        env:
+          PERIOD: ${{ steps.due.outputs.period }}
+        run: python src/geomatics_news.py run --week-of "$PERIOD" --limit 15
 
-      - name: Save report and database as downloadable backup
-        if: steps.due.outputs.run == 'true'
+      - name: Save report and database backup
+        if: steps.due.outputs.run == 'true' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: geomatics-news-${{ github.run_id }}-${{ github.run_attempt }}
@@ -99,45 +91,50 @@ jobs:
             data/news.db
           retention-days: 30
 
-      - name: Show source coverage in run summary
-        if: steps.due.outputs.run == 'true'
-        run: |
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-          health = json.loads(Path('reports/health.json').read_text(encoding='utf-8'))
-          failed = [s['name'] for s in health['sources'] if s['status'] != '正常']
-          text = '采集覆盖不完整：' + '、'.join(failed) if failed else '本次启用来源均读取正常（不代表全网覆盖）。'
-          if failed:
-              print('::warning::' + text)
-          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
-              f.write('\n' + text + '\n')
-          PY
-
-      - name: Commit weekly report and database
-        if: steps.due.outputs.run == 'true'
+      - name: Commit report and database
+        if: steps.due.outputs.run == 'true' && success()
         env:
           REPORT_BRANCH: ${{ github.ref_name }}
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data reports
-          if git diff --cached --quiet; then
-            echo "No report changes to commit."
-            exit 0
-          fi
-          git commit -m "chore: update weekly geomatics news"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore: publish fixed-period marine surveying digest"
           for attempt in 1 2 3; do
             git fetch origin "$REPORT_BRANCH"
             if ! git rebase "origin/$REPORT_BRANCH"; then
               git rebase --abort
-              echo "Concurrent data edits conflict. Download the report backup from this run."
+              echo "::error::Concurrent data conflict. Use the artifact backup."
               exit 1
             fi
-            if git push origin "HEAD:refs/heads/$REPORT_BRANCH"; then
-              exit 0
-            fi
+            if git push origin "HEAD:refs/heads/$REPORT_BRANCH"; then exit 0; fi
           done
-          echo "Could not upload after 3 attempts. Download the report backup from this run."
           exit 1
 
+      - name: Show delivery and coverage status
+        if: always() && !cancelled()
+        env:
+          EXPECTED_PERIOD: ${{ steps.due.outputs.period }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          path=Path('reports/health.json')
+          if not path.exists():
+              raise SystemExit('No health record; report delivery unverified.')
+          h=json.loads(path.read_text(encoding='utf-8'))
+          if h.get('period_id') != os.environ['EXPECTED_PERIOD']:
+              raise SystemExit('Report period is stale or missing; delivery not verified.')
+          core=[s['name'] for s in h['sources'] if s['status']!='正常' and not s.get('optional')]
+          optional=[s['name'] for s in h['sources'] if s['status']!='正常' and s.get('optional')]
+          text=f"Period {h.get('period_id')}; selected {h['selected']}; core complete {h['complete']}; attempts {h.get('attempts')}."
+          if core: text+=' Core missing: '+', '.join(core)
+          if optional: text+=' Optional degraded: '+', '.join(optional)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:f.write('\n'+text+'\n')
+          if core:
+              print('::error::'+text)
+              raise SystemExit(1)
+          if optional:print('::warning::'+text)
+          PY

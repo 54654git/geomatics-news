@@ -1,5 +1,3 @@
-# 国内来源直接读取公开列表页或官方 RSS，不依赖 GDELT。
-# GDELT 国内检索保留为可选备用；今日头条仅可间接检索，不保证覆盖。
 sources:
 - id: cnr_tech
   name: 央广网·科技（直接采集）
@@ -48,9 +46,10 @@ sources:
   tags:
   - 国内媒体
   - 科技
-  max_items: 12
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: xinhua_tech
   name: 新华网·科技（直接采集）
   type: html
@@ -63,9 +62,10 @@ sources:
   tags:
   - 国内媒体
   - 科技
-  max_items: 12
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: mnr_surveying
   name: 自然资源部·测绘（直接采集）
   type: html
@@ -77,9 +77,10 @@ sources:
   tags:
   - 官方
   - 测绘
-  max_items: 12
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: mnr_ocean
   name: 自然资源部·海洋（直接采集）
   type: html
@@ -91,9 +92,10 @@ sources:
   tags:
   - 官方
   - 海洋
-  max_items: 12
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: glut_news
   name: 桂林理工大学·桂工要闻（直接采集）
   type: html
@@ -105,10 +107,11 @@ sources:
   tags:
   - 高校
   - 测绘科研
-  max_items: 12
+  max_items: 16
   request_interval: 1
   enabled: true
   date_xpath: //span[contains(text(),'发布时间')]
+  max_pages: 2
 - id: cas_research
   name: 中国科学院·科研进展（直接采集）
   type: html
@@ -120,9 +123,10 @@ sources:
   tags:
   - 科研院所
   - 科研进展
-  max_items: 12
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: chinanews_rss
   name: 中国新闻网·即时新闻 RSS
   type: rss
@@ -144,9 +148,10 @@ sources:
   tags:
   - 官方
   - 海洋数据与规划
-  max_items: 12
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: fio_research
   name: 自然资源部第一海洋研究所·科研动态
   type: html
@@ -158,9 +163,10 @@ sources:
   tags:
   - 官方科研院所
   - 青岛海洋科研
-  max_items: 10
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: noaa_coast_survey
   name: NOAA 海岸测量办公室（官方 RSS）
   type: rss
@@ -232,7 +238,7 @@ sources:
   max_content_items: 5
   enabled: false
 - id: gdelt_en_marine
-  name: GDELT 国际海洋测绘新闻（已停用：API 限流）
+  name: GDELT 国际海洋测绘新闻（限流停用；不推断永久封禁）
   type: gdelt
   query: ("hydrographic survey" OR bathymetry OR multibeam OR sonar OR "ocean mapping" OR AUV)
   language: English
@@ -253,13 +259,12 @@ sources:
   max_items: 15
   max_content_items: 5
   optional: true
-  # 2026-11-09 实测：本机出口与 GitHub runner 均持续返回 429，且与查询复杂度无关
-  # （单词查询同样被拒），说明限流按出口 IP 而非查询量计。改由 google_news_* 替代。
   enabled: false
 - id: gdelt_en_ocean_policy
   name: GDELT 国际海洋规划与标准新闻（限流备用，默认关闭）
   type: gdelt
-  query: ("Ocean Decade" OR "UN Decade of Ocean Science" OR "IHO S-100" OR "S-102" OR "Seabed 2030" OR GEBCO OR EMODnet OR "Digital Twin Ocean" OR "blue economy" OR "marine spatial planning")
+  query: ("Ocean Decade" OR "UN Decade of Ocean Science" OR "IHO S-100" OR "S-102" OR "Seabed 2030" OR GEBCO OR
+    EMODnet OR "Digital Twin Ocean" OR "blue economy" OR "marine spatial planning")
   language: English
   required_terms:
   - Ocean Decade
@@ -283,7 +288,8 @@ sources:
 - id: gdelt_cn_university_research
   name: GDELT 国内高校与科研院所测绘新闻（备用，默认关闭）
   type: gdelt
-  query: (domain:edu.cn OR domain:cas.cn OR domain:gov.cn) ("海洋测绘" OR "测绘" OR "水深" OR "激光雷达" OR "遥感" OR "北斗" OR "摄影测量")
+  query: (domain:edu.cn OR domain:cas.cn OR domain:gov.cn) ("海洋测绘" OR "测绘" OR "水深" OR "激光雷达" OR "遥感" OR "北斗" OR
+    "摄影测量")
   language: Chinese
   required_terms:
   - 海洋测绘
@@ -307,8 +313,8 @@ sources:
 - id: gdelt_cn_major_media
   name: GDELT 国内大型媒体测绘科技新闻（备用，默认关闭）
   type: gdelt
-  query: (domain:cnr.cn OR domain:toutiao.com OR domain:news.cn OR domain:people.com.cn OR domain:cctv.com OR domain:chinanews.com.cn) ("海洋测绘" OR "测绘" OR "水深" OR
-    "激光雷达" OR "遥感" OR "北斗" OR "卫星" OR "海洋")
+  query: (domain:cnr.cn OR domain:toutiao.com OR domain:news.cn OR domain:people.com.cn OR domain:cctv.com OR domain:chinanews.com.cn)
+    ("海洋测绘" OR "测绘" OR "水深" OR "激光雷达" OR "遥感" OR "北斗" OR "卫星" OR "海洋")
   language: Chinese
   required_terms:
   - 海洋测绘
@@ -364,11 +370,6 @@ sources:
   - bathymetry
   - ocean
   enabled: false
-
-# ---------------------------------------------------------------------------
-# 2026-11 扩充：国际行业媒体与科研机构（官方 RSS，无正文抓取开销）
-# 英文源必须配 required_terms（按标题匹配），否则宽泛条目会稀释中文精选。
-# ---------------------------------------------------------------------------
 - id: hydro_international
   name: Hydro International（国际海道测量行业媒体 RSS）
   type: rss
@@ -440,8 +441,6 @@ sources:
   - 海底测绘
   max_items: 10
   request_interval: 1
-  # Cloudflare 拦截机房 IP：本地 200 正常，GitHub runner 持续 403（2026-11-09 实测）。
-  # 标为 optional，避免它单独把 complete 打成 false 而让周一 16 个时点全部重跑。
   optional: true
   enabled: true
 - id: copernicus_marine
@@ -483,11 +482,6 @@ sources:
   max_items: 10
   request_interval: 1
   enabled: true
-
-# ---------------------------------------------------------------------------
-# 2026-11 扩充：国内学会、院所、政务与行业媒体（HTML 直接采集）
-# title_xpath / date_xpath 按各站实际结构配置，改版时需同步调整。
-# ---------------------------------------------------------------------------
 - id: csgpc_news
   name: 中国测绘学会·学会动态（直接采集）
   type: html
@@ -495,7 +489,7 @@ sources:
   article_url_pattern: /detail/\d+\.html
   allowed_domains:
   - csgpc.org
-  date_xpath: "//div[@class='top_about']"
+  date_xpath: //div[@class='top_about']
   required_terms:
   - 海洋
   - 遥感
@@ -509,9 +503,10 @@ sources:
   tags:
   - 国内学会
   - 测绘
-  max_items: 8
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: sio_research
   name: 自然资源部第二海洋研究所·科研成果（直接采集）
   type: html
@@ -519,7 +514,7 @@ sources:
   article_url_pattern: /a/yjcg/\d+\.html
   allowed_domains:
   - sio.org.cn
-  title_xpath: ".//p[@class='title']"
+  title_xpath: .//p[@class='title']
   required_terms:
   - 海底
   - 深海
@@ -532,9 +527,11 @@ sources:
   tags:
   - 科研院所
   - 海洋科技
-  max_items: 8
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
+  screen_list_summary: true
 - id: hrbeu_news
   name: 哈尔滨工程大学·要闻（直接采集）
   type: html
@@ -542,7 +539,7 @@ sources:
   article_url_pattern: /info/\d+/\d+\.htm
   allowed_domains:
   - news.hrbeu.edu.cn
-  date_xpath: "//div[contains(@class,'article-b')]"
+  date_xpath: //div[contains(@class,'article-b')]
   required_terms:
   - 水下
   - 声呐
@@ -556,9 +553,10 @@ sources:
   tags:
   - 高校
   - 海洋工程
-  max_items: 8
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: whu_sgg
   name: 武汉大学测绘学院·学院新闻（直接采集）
   type: html
@@ -566,7 +564,7 @@ sources:
   article_url_pattern: /info/\d+/\d+\.htm
   allowed_domains:
   - sgg.whu.edu.cn
-  title_xpath: ".//span"
+  title_xpath: .//span
   required_terms:
   - 遥感
   - 北斗
@@ -580,9 +578,11 @@ sources:
   tags:
   - 高校
   - 测绘
-  max_items: 8
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
+  screen_list_summary: true
 - id: ouc_news
   name: 中国海洋大学·海大要闻（直接采集）
   type: html
@@ -590,8 +590,8 @@ sources:
   article_url_pattern: /\d{4}/\d{4}/c\d+a\d+/page\.htm
   allowed_domains:
   - news.ouc.edu.cn
-  title_xpath: ".//div[contains(@class,'news_title')]"
-  date_xpath: "//span[@class='arti_update']"
+  title_xpath: .//div[contains(@class,'news_title')]
+  date_xpath: //span[@class='arti_update']
   required_terms:
   - 深海
   - 极地
@@ -604,9 +604,10 @@ sources:
   tags:
   - 高校
   - 海洋科学
-  max_items: 8
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: tongji_sgg
   name: 同济大学测绘与地理信息学院（直接采集）
   type: html
@@ -614,8 +615,8 @@ sources:
   article_url_pattern: /info/\d+/\d+\.htm
   allowed_domains:
   - celiang.tongji.edu.cn
-  date_xpath: "//div[@class='singlepage-time']"
-  title_xpath: ".//h3"
+  date_xpath: //div[@class='singlepage-time']
+  title_xpath: .//h3
   required_terms:
   - 测绘
   - 地理信息
@@ -628,9 +629,10 @@ sources:
   tags:
   - 高校
   - 测绘
-  max_items: 8
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: taibo_news
   name: 泰伯网·测绘地理信息行业媒体（直接采集）
   type: html
@@ -654,20 +656,18 @@ sources:
   tags:
   - 行业媒体
   - 测绘
-  max_items: 10
+  max_items: 16
   request_interval: 1
   enabled: true
+  max_pages: 2
 - id: google_news_cn_marine
   name: 谷歌新闻·中文海洋测绘检索（聚合，广度补充）
   type: google_news
-  # 词组式检索：避免单独用「多波束」命中微波通信；「海道测量」类高辨识词组优先。
-  # 时间窗口由采集器按 --since-days 自动追加 when:Nd，不要写死在这里。
   query: '"海洋测绘" OR "海道测量" OR "水深测量" OR "海底地形" OR "水下测绘" OR ("多波束" 测深)'
   hl: zh-CN
   gl: CN
   ceid: CN:zh-Hans
   language: Chinese
-  # 第二道关：政治或社会类稿件往往不含技术测量词，靠词表挡在入库之前。
   required_terms:
   - 海道测量
   - 水深测量
@@ -680,26 +680,23 @@ sources:
   - 测深
   - 声呐
   - 海山
-  # 聚合检索会带出境外政治媒体针对中国海洋活动的评论，不进入行业周报。
-  blocked_domains:
-  - rfa.org
+  blocked_domains: []
   tags:
   - 聚合检索
   - 海洋测绘
   - 海道测量
-  max_items: 15
+  max_items: 10
   optional: true
   enabled: true
 - id: google_news_en_marine
   name: 谷歌新闻·英文海洋测绘检索（聚合，广度补充）
   type: google_news
-  query: '"hydrographic survey" OR bathymetry OR "bathymetric survey" OR multibeam OR "seafloor mapping" OR "ocean mapping"'
+  query: '"hydrographic survey" OR bathymetry OR "bathymetric survey" OR multibeam OR "seafloor mapping" OR "ocean
+    mapping"'
   hl: en-US
   gl: US
   ceid: US:en
   language: English
-  # English headlines name the object rather than the discipline, so ocean floor,
-  # sea floor, water depth and echosounder must stay here or real surveys drop out.
   required_terms:
   - hydrographic
   - bathymetr
@@ -715,6 +712,124 @@ sources:
   - 聚合检索
   - 海洋测绘
   - bathymetry
-  max_items: 15
+  max_items: 10
   optional: true
+  enabled: true
+  blocked_domains: []
+- id: sdust_geomatics
+  name: 山东科技大学测绘与空间信息学院（本校）
+  type: html
+  url: https://gc.sdust.edu.cn/
+  article_url_pattern: /info/\d+/\d+\.htm
+  allowed_domains:
+  - gc.sdust.edu.cn
+  title_xpath: .//p[@class='bt']
+  date_xpath: //div[@class='show01']/p/i[contains(text(),'发布')]
+  required_terms:
+  - 海洋
+  - 测绘
+  - 遥感
+  - 水深
+  - 声呐
+  - 海底
+  - 点云
+  - 导航
+  - 学术
+  - 科研
+  tags:
+  - 本校
+  - 测绘
+  - 科研
+  max_items: 18
+  max_pages: 1
+  request_interval: 1
+  enabled: true
+- id: sdust_survey_news
+  name: 山科大新闻网·测绘学院（本校）
+  type: html
+  url: https://news.sdust.edu.cn/dwdt/chxy.htm
+  article_url_pattern: /info/1156/\d+\.htm
+  allowed_domains:
+  - news.sdust.edu.cn
+  date_xpath: //div[@class='nr-xinxi']/i[contains(text(),'发布时间')]
+  required_terms:
+  - 测绘
+  - 海洋
+  - 遥感
+  - 水深
+  - 声呐
+  - 海底
+  - 导航
+  - 学术
+  - 科研
+  tags:
+  - 本校
+  - 测绘
+  max_items: 18
+  max_pages: 2
+  request_interval: 1
+  enabled: true
+- id: sdust_ocean_news
+  name: 山科大新闻网·海洋学院（本校）
+  type: html
+  url: https://news.sdust.edu.cn/dwdt/hyxy.htm
+  article_url_pattern: /info/1173/\d+\.htm
+  allowed_domains:
+  - news.sdust.edu.cn
+  date_xpath: //div[@class='nr-xinxi']/i[contains(text(),'发布时间')]
+  required_terms:
+  - 测绘
+  - 遥感
+  - 水下
+  - 测深
+  - 声呐
+  - 海底
+  - 导航
+  - 科研
+  - 研究成果
+  tags:
+  - 本校
+  - 海洋
+  max_items: 16
+  max_pages: 2
+  request_interval: 1
+  enabled: true
+- id: gov_cn_policy
+  name: 中国政府网·最新政策（官方公开 JSON）
+  type: json_list
+  url: https://www.gov.cn/zhengce/zuixin/ZUIXINZHENGCE.json
+  allowed_domains:
+  - gov.cn
+  required_terms:
+  - 海洋
+  - 测绘
+  - 海底
+  - 海岸
+  - 海图
+  - 国土空间
+  tags:
+  - 官方
+  - 政策与规划
+  max_items: 8
+  scan_items: 200
+  enabled: true
+- id: ukho_official
+  name: 英国海道测量局 UKHO（GOV.UK 官方 Atom）
+  type: rss
+  url: https://www.gov.uk/government/organisations/uk-hydrographic-office.atom
+  required_terms:
+  - hydrograph
+  - bathymetr
+  - chart
+  - s-100
+  - s-102
+  - mapping
+  - marine
+  - data
+  tags:
+  - 官方
+  - 海道测量
+  - 标准与规划
+  max_items: 16
+  scan_items: 120
   enabled: true

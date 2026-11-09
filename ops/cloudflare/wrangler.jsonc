@@ -1,0 +1,7 @@
+{
+  "name": "geomatics-weekly-trigger",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-09",
+  "triggers": {"crons": ["25 0,2 * * MON,TUE"]},
+  "vars": {"OWNER": "54654git", "REPO": "geomatics-news", "WORKFLOW": "weekly.yml", "REF": "main"}
+}

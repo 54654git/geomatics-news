@@ -33,6 +33,13 @@ import yaml
 from rapidfuzz.fuzz import ratio
 
 try:
+    from . import editorial as ed
+    from .periods import report_period, contains, content_version
+except ImportError:
+    import editorial as ed
+    from periods import report_period, contains, content_version
+
+try:
     from trafilatura import extract as extract_article
 except ImportError:  # pragma: no cover
     extract_article = None
@@ -53,6 +60,11 @@ MAX_ITEMS_PER_SOURCE = 3
 # Below this the per-source cap is relaxed; a very quiet week still needs a report.
 MIN_REPORT_ITEMS = 8
 REPORT_TIMEZONE = ZoneInfo("Asia/Shanghai")
+ACTIVE_PERIOD = None
+DETAIL_CACHE: dict[str, dict] = {}
+PUBLISHER_INDEX: dict[str, list] = {}
+PUBLISHER_FORMS: dict[str, tuple | None] = {}
+PUBLISHER_SEARCHES = 0
 
 KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
     "海洋测绘": (
@@ -196,6 +208,9 @@ class Article:
     source_score: float = 0.0
     freshness: float = 0.0
     content_type: str = "行业资讯"
+    canonical_url: str = ""
+    publisher_domain: str = ""
+    date_basis: str = "来源发布日期"
 
     @property
     def fingerprint(self) -> str:
@@ -213,6 +228,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=30)
     parser.add_argument("--no-content", action="store_true", help="不抓取文章正文，适合调试")
     parser.add_argument("--no-translate", action="store_true", help="不调用翻译服务")
+    parser.add_argument("--week-of", help="报告所属周的周一，例如 2026-11-09；默认本周一")
+    parser.add_argument("--rolling", action="store_true", help="调试：使用滚动天数而非完整自然周")
     return parser.parse_args()
 
 
@@ -256,6 +273,10 @@ def init_db(path: Path) -> sqlite3.Connection:
             column_type = "REAL" if name.endswith("relevance") else "TEXT"
             default = "0" if column_type == "REAL" else "'[]'"
             conn.execute(f"ALTER TABLE articles ADD COLUMN {name} {column_type} DEFAULT {default}")
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(articles)")}
+    for name in ('canonical_url', 'publisher_domain', 'date_basis', 'body_status', 'eligibility_reason', 'rule_version'):
+        if name not in columns:
+            conn.execute(f"ALTER TABLE articles ADD COLUMN {name} TEXT DEFAULT ''")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at)")
     conn.execute("CREATE TABLE IF NOT EXISTS collection_runs (id INTEGER PRIMARY KEY, checked_at TEXT NOT NULL, sources_json TEXT NOT NULL)")
     if "config_hash" not in {row[1] for row in conn.execute("PRAGMA table_info(collection_runs)")}:
@@ -306,6 +327,8 @@ def is_recent(article: Article, since_days: int) -> bool:
     value = normalized_date(article.published_at)
     if not value:
         return False
+    if ACTIVE_PERIOD:
+        return contains(value, ACTIVE_PERIOD)
     dt = datetime.fromisoformat(value)
     now = datetime.now(timezone.utc)
     return now - timedelta(days=since_days) <= dt <= now
@@ -329,6 +352,30 @@ def required_match(source: dict[str, Any], text: str) -> bool:
     return not terms or any(str(term).lower() in text.lower() for term in terms)
 
 
+def metric(source, key, count=1):
+    metrics = source.setdefault('_metrics', {})
+    metrics[key] = metrics.get(key, 0) + count
+
+
+def detail_metadata(text, base):
+    tree = lxml_html.fromstring(text)
+    meta = {(n.get('name') or n.get('property') or '').lower(): n.get('content','') for n in tree.xpath('//meta[@content]')}
+    date = next((normalized_date(meta[k]) for k in ('publishdate','pubdate','article:published_time','date','dc.date','dcterms.created') if normalized_date(meta.get(k))), None)
+    if not date:
+        for n in tree.xpath('//time[@datetime] | //*[@class="arti_update"] | //*[@class="singlepage-time"]'):
+            date = normalized_date(n.get('datetime') or n.text_content())
+            if date:break
+    # JSON-LD may hold the original date even when Google exposes a refreshed timestamp.
+    if not date:
+        match = re.search(r'"datePublished"\s*:\s*"([^"]+)"', text)
+        if match:date = normalized_date(match[1])
+    canonical = tree.xpath('//link[@rel="canonical"]/@href')
+    candidate = urljoin(base, canonical[0]) if canonical else base
+    if ed.publisher_domain(candidate) != ed.publisher_domain(base):candidate = base
+    return {'date':date, 'canonical':normalize_url(candidate),
+            'summary':clean_text(meta.get('description') or meta.get('og:description')), 'tree':tree}
+
+
 def article_body(text: str) -> str:
     tree = lxml_html.fromstring(text)
     nodes = tree.xpath("//*[@id='content1' or @id='detailContent' or starts-with(@id,'vsb_content') "
@@ -339,36 +386,51 @@ def article_body(text: str) -> str:
                        "or contains(concat(' ',normalize-space(@class),' '),' article-content ')]")
     if nodes:
         body = nodes[0]
-        for node in body.xpath(".//script | .//style | .//nav | .//iframe"):
+        for node in body.xpath(".//script | .//style | .//nav | .//iframe | .//aside | "
+                               ".//*[contains(@class,'related-post') or contains(@class,'related-news') or contains(@class,'newsletter')]"):
             node.drop_tree()
         resources = [a.get("href", "") for a in body.xpath(".//a[@href]")
-                     if re.match(r"https?://(?:doi\.org|github\.com|zenodo\.org|figshare\.com|[^/]*pangaea\.de)/", a.get("href", ""))]
+                     if ed.RESOURCE.match(a.get("href", ""))]
         return clean_text(body.text_content()) + (" 资源链接：" + " ".join(dict.fromkeys(resources)) if resources else "")
-    return clean_text(extract_article(text, include_comments=False, include_tables=False) or "") if extract_article else ""
+    content = clean_text(extract_article(text, include_comments=False, include_tables=False) or "") if extract_article else ""
+    resources = [a.get('href') for a in tree.xpath('//a[@href]') if ed.RESOURCE.match(a.get('href',''))]
+    return content + (' 资源链接：' + ' '.join(dict.fromkeys(resources)) if resources else '')
 
 
 def collect_html(source: dict[str, Any], session: requests.Session, fetch_content: bool,
                  since_days: int) -> tuple[list[Article], list[str]]:
     """Read bounded public news lists and verify dates on their article pages."""
-    response = session.get(source["url"], timeout=25)
-    response.raise_for_status()
-    tree = lxml_html.fromstring(decode_page(response))
     candidates: dict[str, str] = {}
     article_links = 0
     allowed = source.get("allowed_domains", [urlsplit(source["url"]).hostname])
-    for link in tree.xpath(source.get("link_xpath", "//a[@href]")):
-        url = normalize_url(urljoin(source["url"], link.get("href", "")))
-        host = (urlsplit(url).hostname or "").lower()
-        if urlsplit(url).scheme not in ("https", "http") or not any(host == d or host.endswith("." + d) for d in allowed):
-            continue
-        if not re.search(source["article_url_pattern"], url):
-            continue
-        article_links += 1
-        title_nodes = link.xpath(source.get("title_xpath", ".//strong | .//h5 | .//h4 | .//h2"))
-        title = clean_text(link.get("title") or (title_nodes[0].text_content() if title_nodes else link.text_content()))
-        if len(title) < 6 or not required_match(source, title):
-            continue
-        candidates.setdefault(url, title)
+    list_url = source['url']
+    visited = set()
+    for page in range(int(source.get('max_pages', 1))):
+        if list_url in visited:break
+        visited.add(list_url)
+        response = session.get(list_url, timeout=25)
+        response.raise_for_status()
+        tree = lxml_html.fromstring(decode_page(response))
+        metric(source,'list_pages')
+        for link in tree.xpath(source.get("link_xpath", "//a[@href]")):
+            url = normalize_url(urljoin(list_url, link.get("href", "")))
+            host = (urlsplit(url).hostname or "").lower()
+            if urlsplit(url).scheme not in ("https", "http") or not any(host == d or host.endswith("." + d) for d in allowed):continue
+            if not re.search(source["article_url_pattern"], url):continue
+            article_links += 1
+            title_nodes = link.xpath(source.get("title_xpath", ".//strong | .//h5 | .//h4 | .//h2"))
+            title = clean_text(link.get("title") or (title_nodes[0].text_content() if title_nodes else link.text_content()))
+            metric(source,'raw_links')
+            screening = title + (' ' + clean_text(link.getparent().text_content())[:1200] if source.get('screen_list_summary') else '')
+            if len(title) < 6 or not required_match(source, screening):
+                metric(source,'topic_rejected');continue
+            candidates.setdefault(url, title)
+        next_links = tree.xpath(source.get('next_page_xpath', "//a[contains(normalize-space(.),'下一页') or normalize-space(.)='下页' or normalize-space(.)='Next']/@href"))
+        if not next_links:break
+        next_url = urljoin(list_url,next_links[0])
+        if urlsplit(next_url).hostname != urlsplit(source['url']).hostname:break
+        list_url = next_url
+        if page+1 < int(source.get('max_pages',1)):time.sleep(float(source.get('request_interval',1)))
     if not article_links:
         raise SourceError("页面没有预期的文章链接，可能发生改版或返回了验证页面")
     articles: list[Article] = []
@@ -378,6 +440,7 @@ def collect_html(source: dict[str, Any], session: requests.Session, fetch_conten
         try:
             response = session.get(url, timeout=20)
             response.raise_for_status()
+            metric(source,'detail_read')
             text = decode_page(response)
             detail = lxml_html.fromstring(text)
             meta = {(node.get("name") or node.get("property") or "").lower(): node.get("content", "")
@@ -396,14 +459,21 @@ def collect_html(source: dict[str, Any], session: requests.Session, fetch_conten
                               date, summary, "", list(source.get("tags", [])))
             if not date:
                 errors.append(f"无法确认发布日期，已跳过：{url}")
+                metric(source,'date_missing')
             if not is_recent(article, since_days):
+                metric(source,'outside_window')
                 continue
+            metric(source,'in_window')
             if fetch_content:
                 article.content = article_body(text)
             article.content = article.content or summary
+            article.canonical_url = detail_metadata(text,url)['canonical']
+            article.publisher_domain = ed.publisher_domain(article.canonical_url)
+            if ed.body_level(title,summary,article.content)=='正文可用':metric(source,'body_available')
             articles.append(article)
         except (requests.RequestException, ValueError, LxmlError) as exc:
             errors.append(f"{url}: {exc}")
+    metric(source,'detail_budget_skipped',max(0,len(candidates)-int(source.get('max_items',12))))
     return articles, errors
 
 
@@ -428,12 +498,14 @@ def parse_gdelt_date(value: str | None) -> str | None:
 
 
 def fetch_article_content(url: str, session: requests.Session) -> str:
-    if extract_article is None:
-        return ""
     try:
         response = session.get(url, timeout=20)
         response.raise_for_status()
-        return article_body(decode_page(response))
+        text = decode_page(response)
+        metadata = detail_metadata(text,response.url or url)
+        metadata.pop('tree',None)
+        DETAIL_CACHE[url] = metadata
+        return article_body(text)
     except (requests.RequestException, ValueError) as exc:
         logging.warning("正文抓取失败 %s: %s", url, exc)
         return ""
@@ -452,25 +524,44 @@ def collect_feed(source: dict[str, Any], session: requests.Session, fetch_conten
     if getattr(parsed, "bozo", False):
         logging.warning("RSS 解析存在格式问题 %s: %s", source["url"], getattr(parsed, "bozo_exception", ""))
     articles: list[Article] = []
-    for entry in parsed.entries[: int(source.get("max_items", 30))]:
+    metric(source,'raw_links',len(parsed.entries))
+    for entry in parsed.entries[:int(source.get('scan_items',200))]:
         title = clean_text(entry.get("title"))
         url = normalize_url(entry.get("link", ""))
         if not title or not url:
             continue
         summary = clean_text(entry.get("summary") or entry.get("description"))
+        # Index all visible headlines before date filtering, for resolving aggregate links.
+        PUBLISHER_INDEX.setdefault(ed.publisher_domain(url), []).append({'title':title,'url':url,'date':parse_date(entry)})
         if not required_match(source, title + " " + summary):
+            metric(source,'topic_rejected')
             continue
         article = Article(source["id"], source.get("name", source["id"]), title, url,
                           parse_date(entry), summary, summary, list(source.get("tags", [])))
         # Do not download full archives simply to discard old articles later.
+        if not normalized_date(article.published_at):metric(source,'date_missing')
         if not is_recent(article, since_days):
+            metric(source,'outside_window')
             continue
+        metric(source,'in_window')
         # Some official feeds include the complete article (content:encoded).
         # Prefer that text to an abbreviated webpage or an unnecessary request.
-        feed_content = clean_text(" ".join(part.get("value", "") for part in entry.get("content", [])))
+        raw_feed_content = " ".join(part.get("value", "") for part in entry.get("content", []))
+        feed_content = clean_text(raw_feed_content)
+        feed_resources = [m.group(0) for m in ed.RESOURCE.finditer(raw_feed_content)]
+        if feed_resources:feed_content += ' 资源链接：'+' '.join(dict.fromkeys(feed_resources))
         if fetch_content:
-            article.content = feed_content or fetch_article_content(url, session) or summary
+            article.content = (fetch_article_content(url,session) or feed_content or summary) if not entry.get('published') else (feed_content or fetch_article_content(url, session) or summary)
+        metadata = DETAIL_CACHE.get(url,{})
+        article.canonical_url = metadata.get('canonical',url)
+        article.publisher_domain = ed.publisher_domain(article.canonical_url)
+        if metadata.get('date'):
+            article.published_at = metadata['date']
+            article.date_basis = '原站发布日期'
+            if not is_recent(article,since_days):metric(source,'original_date_outside');continue
+        if ed.body_level(title,summary,article.content)=='正文可用':metric(source,'body_available')
         articles.append(article)
+        if len(articles)>=int(source.get('max_items',30)):break
     return articles
 
 
@@ -525,13 +616,86 @@ def collect_gdelt(source: dict[str, Any], session: requests.Session, fetch_conte
     return articles
 
 
+def search_publisher(article, session):
+    """Use only a public search form observed on the publisher's homepage."""
+    global PUBLISHER_SEARCHES
+    domain=article.publisher_domain
+    if not domain or PUBLISHER_SEARCHES>=6:return '',None
+    try:
+        if domain not in PUBLISHER_FORMS:
+            PUBLISHER_FORMS[domain]=None
+            home=session.get('https://'+domain+'/',timeout=12);home.raise_for_status()
+            tree=lxml_html.fromstring(decode_page(home))
+            for form in tree.xpath('//form'):
+                action=urljoin(home.url,form.get('action') or home.url)
+                names=form.xpath('.//input/@name')
+                key=next((n for n in names if n in ('q','query','s','keys','search')),None)
+                if key and ed.publisher_domain(action)==domain and form.get('method','get').lower()=='get':
+                    PUBLISHER_FORMS[domain]=(action,key);break
+        form=PUBLISHER_FORMS.get(domain)
+        if not form:return '',None
+        PUBLISHER_SEARCHES+=1
+        action,key=form
+        result=session.get(action,params={key:article.title},timeout=15);result.raise_for_status()
+        tree=lxml_html.fromstring(decode_page(result))
+        for a in tree.xpath('//a[@href]'):
+            target=urljoin(result.url,a.get('href'))
+            text=clean_text(a.get('title') or a.text_content())
+            if ed.publisher_domain(target)==domain and ratio(text.lower(),article.title.lower())>=85:
+                return normalize_url(target),None
+    except (requests.RequestException,ValueError,LxmlError):pass
+    return '',None
+
+
+def resolve_publisher_url(article, session):
+    domain = article.publisher_domain
+    for candidate in PUBLISHER_INDEX.get(domain,[]):
+        if ratio(article.title.lower(),candidate['title'].lower()) >= 88:
+            return candidate['url'], candidate.get('date')
+    # Only ordinary redirects and public article links. Never use private RPCs or bypass a challenge.
+    try:
+        r = session.get(article.url,timeout=15)
+        r.raise_for_status()
+        if ed.publisher_domain(r.url)==domain:return normalize_url(r.url),None
+        tree = lxml_html.fromstring(decode_page(r))
+        for href in tree.xpath('//a[@href]/@href | //link[@rel="canonical"]/@href'):
+            target=urljoin(r.url,href)
+            if ed.publisher_domain(target)==domain and urlsplit(target).path not in ('','/'):
+                return normalize_url(target),None
+    except (requests.RequestException, ValueError, LxmlError):pass
+    return search_publisher(article,session)
+
+
+def collect_json_list(source, session, fetch_content, since_days):
+    """Read a publisher's public JSON list linked from its own news page."""
+    response=session.get(source['url'],timeout=25);response.raise_for_status()
+    payload=response.json()
+    if not isinstance(payload,list):raise SourceError('公开列表 JSON 结构已改变')
+    metric(source,'raw_links',len(payload))
+    items=[]
+    for entry in payload[:int(source.get('scan_items',200))]:
+        title=clean_text(entry.get('TITLE'))
+        url=normalize_url(entry.get('URL',''))
+        if not url or ed.publisher_domain(url) not in source.get('allowed_domains',[]):continue
+        if not required_match(source,title):metric(source,'topic_rejected');continue
+        a=Article(source['id'],source['name'],title,url,normalized_date(entry.get('DOCRELPUBTIME')),'','',source.get('tags',[]))
+        if not is_recent(a,since_days):metric(source,'outside_window');continue
+        metric(source,'in_window')
+        a.content=fetch_article_content(url,session) if fetch_content else ''
+        a.summary=DETAIL_CACHE.get(url,{}).get('summary','')
+        a.canonical_url=DETAIL_CACHE.get(url,{}).get('canonical',url)
+        a.publisher_domain=ed.publisher_domain(url)
+        if ed.body_level(title,a.summary,a.content)=='正文可用':metric(source,'body_available')
+        items.append(a)
+        if len(items)>=int(source.get('max_items',8)):break
+    return items
+
+
 def collect_google_news(source: dict[str, Any], session: requests.Session, fetch_content: bool,
                         since_days: int = 8) -> list[Article]:
     """Search Google News RSS.
 
-    Used instead of GDELT, whose API rejects this project's egress with HTTP 429
-    regardless of query shape. Entries link to a Google redirect, so the
-    publisher page cannot be fetched; the aggregator summary is kept instead.
+    Optional discovery channel. A title-only entry is never presented as a read article.
     """
     params = {"q": source["query"], "hl": source.get("hl", "en-US"),
               "gl": source.get("gl", "US"), "ceid": source.get("ceid", "US:en")}
@@ -540,8 +704,7 @@ def collect_google_news(source: dict[str, Any], session: requests.Session, fetch
     # --since-days so the feed and the local freshness filter cannot disagree.
     if " when:" not in params["q"]:
         params["q"] = f"({params['q']}) when:{since_days}d"
-    # ceid must keep its colon; percent-encoded "CN%3Azh-Hans" makes Google fall
-    # back to an unlocalised feed that returns years-old headlines.
+    # Keep locale syntax readable. Independently verify dates; encoding alone is not freshness proof.
     url = f"{GOOGLE_NEWS_ENDPOINT}?{urlencode(params, safe=':')}"
     try:
         response = session.get(url, timeout=30)
@@ -553,7 +716,8 @@ def collect_google_news(source: dict[str, Any], session: requests.Session, fetch
         raise SourceError("Google 新闻搜索没有返回条目，查询可能过长或已被限流")
     blocked = [str(domain).lower() for domain in source.get("blocked_domains", [])]
     articles: list[Article] = []
-    for entry in parsed.entries[: int(source.get("max_items", 30))]:
+    metric(source,'raw_links',len(parsed.entries))
+    for entry in parsed.entries[: int(source.get("scan_items", 100))]:
         title = clean_text(entry.get("title"))
         if not title:
             continue
@@ -572,6 +736,7 @@ def collect_google_news(source: dict[str, Any], session: requests.Session, fetch
             continue
         summary = clean_text(entry.get("summary"))
         if not required_match(source, f"{title} {summary}"):
+            metric(source,'topic_rejected')
             continue
         if source.get("language") == "Chinese" and not has_chinese(title):
             continue
@@ -579,8 +744,26 @@ def collect_google_news(source: dict[str, Any], session: requests.Session, fetch
         article = Article(source["id"], name, title, url, parse_date(entry), summary, summary,
                           list(source.get("tags", [])))
         if not is_recent(article, since_days):
+            metric(source,'outside_window')
             continue
+        metric(source,'in_window')
+        article.publisher_domain = ed.publisher_domain((entry.get('source') or {}).get('href') or '')
+        article.date_basis = '聚合标注日期，原站待核实'
+        if fetch_content:
+            canonical, original_date = resolve_publisher_url(article,session)
+            if canonical:
+                article.canonical_url = canonical
+                article.content = fetch_article_content(canonical,session) or summary
+                metadata = DETAIL_CACHE.get(canonical,{})
+                original_date = metadata.get('date') or original_date
+                if original_date:
+                    article.published_at = normalized_date(original_date)
+                    article.date_basis = '原站发布日期'
+                    if not is_recent(article,since_days):metric(source,'original_date_outside');continue
+                if ed.body_level(title,summary,article.content)=='正文可用':metric(source,'body_available')
+            else:metric(source,'original_unresolved')
         articles.append(article)
+        if len(articles)>=int(source.get('max_items',15)):break
     return articles
 
 
@@ -602,12 +785,7 @@ def dedupe_aggregated(items: list[Article], existing: list[Article]) -> list[Art
     """
     kept: list[Article] = []
     for article in items:
-        names = proper_names(article.title)
-        duplicate = any(
-            (names & proper_names(other.title))
-            or ratio(article.title.lower(), other.title.lower()) >= 60
-            for other in existing + kept
-        )
+        duplicate = any(ed.same_event(vars(article),vars(other)) for other in existing+kept)
         if not duplicate:
             kept.append(article)
     return kept
@@ -640,6 +818,9 @@ def matched_groups(text: str, groups: dict[str, tuple[str, ...]]) -> tuple[int, 
 def classify_content(article: Article) -> str:
     """Conservative discovery labels, never a verification of the underlying claim."""
     lead = f"{article.title} {article.summary}"
+    label = ed.genre(article.title, lead + ' ' + article.content[:1000])
+    if label in ed.LOW_PRIORITY or label in ('科研成果线索','数据与代码线索'):
+        return label
     if keyword_hits(article.title, ("market worth", "market size", "market forecast", "marketsandmarkets",
                                     "市场规模", "市场预测", "复合年增长率", "市场报告")):
         return "商业市场资讯"
@@ -678,7 +859,7 @@ def policy_focus(article: Article) -> list[str]:
 
 
 def score_article(article: Article, now: datetime | None = None) -> Article:
-    now = now or datetime.now(timezone.utc)
+    now = now or (datetime.fromisoformat(ACTIVE_PERIOD['end']) if ACTIVE_PERIOD else datetime.now(timezone.utc))
     body = f"{article.title} {article.summary} {article.content}"
     # Long article bodies often contain related-news lists and footer text.
     # Policy classification therefore uses the title and publisher summary,
@@ -702,10 +883,15 @@ def score_article(article: Article, now: datetime | None = None) -> Article:
     article.relevance = min(1.0, total_hits / 8)
     # Source tags describe the feed, but must not make every unrelated article
     # look marine-relevant. The score is based on article text only.
-    article.marine_relevance = min(1.0, marine_hits / 4)
+    article.marine_relevance = min(1.0, max(1,marine_hits) / 4) if ed.marine_context(article.title,article.summary+' '+article.content) else 0
     article.policy_relevance = min(1.0, policy_hits / 2)
     article.future_relevance = min(1.0, future_hits / 3)
     article.research_relevance = min(1.0, research_hits / 2)
+    # Research requires a method/data/academic lead, not merely the word "algorithm" in a financing story.
+    if article.content_type not in ('科研成果线索','数据与代码线索'):
+        article.research_relevance = 0
+    if article.content_type in ed.LOW_PRIORITY:
+        article.research_relevance = article.future_relevance = article.marine_relevance = 0
     article.focus_tags = policy_labels + future_labels + research_labels
     host = (urlsplit(article.url).hostname or "").lower()
     article.source_score = 1.0 if any(host == d or host.endswith("." + d) for d in TRUSTED_SOURCE_DOMAINS) else 0.70
@@ -730,14 +916,13 @@ def total_score(article: Article) -> float:
         + 0.05 * article.source_score
         + 0.05 * article.freshness
     )
-    return score * (0.15 if article.content_type == "商业市场资讯" else 1.0)
+    return score * (0.05 if article.content_type in ed.LOW_PRIORITY else 1.0)
 
 
 def deduplicate(articles: list[Article]) -> list[Article]:
     kept: list[Article] = []
     for article in sorted(articles, key=total_score, reverse=True):
-        if any(normalize_url(article.url) == normalize_url(old.url) or
-               ratio(article.title.lower(), old.title.lower()) >= 88 for old in kept):
+        if any(ed.same_event(vars(article),vars(old)) for old in kept):
             continue
         kept.append(article)
     return kept
@@ -764,6 +949,9 @@ def save_articles(conn: sqlite3.Connection, articles: Iterable[Article]) -> int:
         # A later retry can fill a previously missing body without losing translations.
         conn.execute("UPDATE articles SET content = ? WHERE fingerprint = ? AND length(COALESCE(content, '')) < ?",
                      (article.content, article.fingerprint, len(article.content)))
+        conn.execute("UPDATE articles SET canonical_url=?, publisher_domain=?, date_basis=?, body_status=?, rule_version=? WHERE fingerprint=?",
+                     (article.canonical_url or article.url, article.publisher_domain or ed.publisher_domain(article.url),
+                      article.date_basis, ed.body_level(article.title,article.summary,article.content),ed.VERSION,article.fingerprint))
     conn.commit()
     return count
 
@@ -774,6 +962,7 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
     all_articles: list[Article] = []
     statuses: list[dict[str, Any]] = []
     for source in sources:
+        source['_metrics'] = {}
         logging.info("采集 %s", source.get("name", source["id"]))
         status = {"id": source["id"], "name": source.get("name", source["id"]), "status": "正常",
                   "candidates": 0, "recent": 0, "detail": "",
@@ -784,7 +973,6 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
                 items = collect_gdelt(source, session, fetch_content, since_days)
             elif kind == "google_news":
                 items = collect_google_news(source, session, fetch_content, since_days)
-                items = dedupe_aggregated(items, all_articles)
             elif kind == "html":
                 items, errors = collect_html(source, session, fetch_content, since_days)
                 if errors:
@@ -792,6 +980,8 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
                     logging.warning("来源部分失败 %s: %s", source["id"], status["detail"])
             elif kind == "rss":
                 items = collect_feed(source, session, fetch_content, since_days)
+            elif kind == 'json_list':
+                items = collect_json_list(source,session,fetch_content,since_days)
             else:
                 raise SourceError(f"不支持的新闻源类型：{kind}")
             status["candidates"] = len(items)
@@ -800,6 +990,9 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
         except (SourceError, requests.RequestException, ValueError, LxmlError) as exc:
             status.update(status="失败", detail=clean_text(str(exc))[:250])
             logging.warning("新闻源失败 %s: %s", source["id"], exc)
+        status['metrics'] = source.get('_metrics',{})
+        if status['metrics'].get('original_unresolved'):
+            status['detail'] += f"；{status['metrics']['original_unresolved']} 条聚合原文未解析，仅作待核实线索"
         statuses.append(status)
         logging.info("来源结果 %s: %s，近期 %d 条", source["id"], status["status"], status["recent"])
     recent: list[Article] = []
@@ -809,7 +1002,13 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
             article.published_at = normalized_date(article.published_at)
             recent.append(article)
     conn = init_db(db)
-    inserted = save_articles(conn, deduplicate(recent))
+    # Keep raw candidates: selection rules can be upgraded without deleting historical evidence.
+    inserted = save_articles(conn, recent)
+    # Correct previously stored aggregator/update dates when the publisher exposes its original date.
+    for observed_url,metadata in DETAIL_CACHE.items():
+        if metadata.get('date'):
+            conn.execute("UPDATE articles SET published_at=?, date_basis='原站发布日期' WHERE url=? OR canonical_url=?",
+                         (metadata['date'],observed_url,metadata.get('canonical',observed_url)))
     conn.execute("INSERT INTO collection_runs (checked_at, sources_json, config_hash) VALUES (?, ?, ?)",
                  (datetime.now(timezone.utc).isoformat(), json.dumps(statuses, ensure_ascii=False),
                   hashlib.sha256(config.read_bytes()).hexdigest()))
@@ -855,6 +1054,10 @@ def translate_text(text: str, session: requests.Session, cache: dict[str, str]) 
 
 def rows_for_report(conn: sqlite3.Connection, since_days: int, limit: int) -> list[sqlite3.Row]:
     cutoff = (datetime.now(timezone.utc) - timedelta(days=since_days)).isoformat()
+    upper = datetime.now(timezone.utc).isoformat()
+    if ACTIVE_PERIOD:
+        cutoff = datetime.fromisoformat(ACTIVE_PERIOD['start']).astimezone(timezone.utc).isoformat()
+        upper = datetime.fromisoformat(ACTIVE_PERIOD['end']).astimezone(timezone.utc).isoformat()
     return list(conn.execute(
         """SELECT *, (
              0.10 * relevance + 0.25 * marine_relevance + 0.20 * policy_relevance
@@ -862,16 +1065,16 @@ def rows_for_report(conn: sqlite3.Connection, since_days: int, limit: int) -> li
              + 0.05 * source_score + 0.05 * freshness
            ) * CASE WHEN content_type = '商业市场资讯' THEN 0.15 ELSE 1 END AS score
            FROM articles
-           WHERE published_at >= ? AND published_at <= ? AND (
+           WHERE published_at >= ? AND published_at < ? AND COALESCE(eligibility_reason,'') = '' AND (
              relevance >= 0.15 OR marine_relevance >= 0.15 OR policy_relevance >= 0.15
              OR future_relevance >= 0.15 OR research_relevance >= 0.15
            )
            ORDER BY score DESC, published_at DESC LIMIT ?""",
-        (cutoff, datetime.now(timezone.utc).isoformat(), limit),
+        (cutoff, upper, limit),
     ))
 
 
-def recalculate_scores(conn: sqlite3.Connection) -> None:
+def recalculate_scores(conn: sqlite3.Connection, sources=None) -> None:
     """Re-score old database rows after a scoring-rule upgrade."""
     rows = conn.execute("SELECT id, source_id, source_name, title, url, published_at, summary, content, tags FROM articles").fetchall()
     for row in rows:
@@ -882,6 +1085,14 @@ def recalculate_scores(conn: sqlite3.Connection) -> None:
         article = Article(row["source_id"], row["source_name"], row["title"], row["url"],
                           row["published_at"], row["summary"] or "", row["content"] or "", tags)
         score_article(article)
+        reason = ''
+        if article.content_type in ed.LOW_PRIORITY:reason = article.content_type
+        if sources is not None:
+            source = sources.get(row['source_id'])
+            if source is None:reason = '当前来源已停用'
+            elif not required_match(source,article.title+' '+article.summary+(' '+article.content[:1200] if source.get('screen_list_summary') else '')):reason = '不满足当前来源主题规则'
+        body_status = ed.body_level(article.title,article.summary,article.content)
+        if body_status == '仅有标题，待核实':reason = '仅有标题，未取得足够正文或摘要'
         conn.execute(
             """UPDATE articles SET relevance = ?, marine_relevance = ?, policy_relevance = ?,
                future_relevance = ?, research_relevance = ?, focus_tags = ?,
@@ -891,6 +1102,8 @@ def recalculate_scores(conn: sqlite3.Connection) -> None:
              yaml.safe_dump(article.focus_tags or [], allow_unicode=True),
              article.source_score, article.freshness, article.content_type, row["id"]),
         )
+        conn.execute('UPDATE articles SET eligibility_reason=?,body_status=?,rule_version=? WHERE id=?',
+                     (reason,body_status,ed.VERSION,row['id']))
     conn.commit()
 
 
@@ -911,47 +1124,35 @@ def report_candidates(conn: sqlite3.Connection, report_dir: Path, since_days: in
     day = datetime.fromisoformat(date_text)
     week_start = (day - timedelta(days=day.weekday())).date().isoformat()
     previous = list(conn.execute("SELECT url, title FROM report_items WHERE report_date < ?", (week_start,)))
-    previous_names = [proper_names(old["title"]) for old in previous]
     # Filter before limiting; otherwise old headlines can occupy all available slots.
     rows = rows_for_report(conn, since_days, -1)
     kept: list[sqlite3.Row] = []
-    kept_names: list[set[str]] = []
-    deferred: list[sqlite3.Row] = []
     per_source: dict[str, int] = {}
+    general_count = 0
+    general_language = set()
+    # Marine items first; a small transferable-method section can supplement them.
+    rows.sort(key=lambda r:(r['marine_relevance']>0 or r['policy_relevance']>0, r['score']),reverse=True)
     for row in rows:
-        names = proper_names(row["title"])
-        if any(normalize_url(row["url"]) == old["url"]
-               # A rewritten aggregator headline restating a publisher's own story
-               # scores far below 88% similarity, but keeps the quoted name.
-               or (names & other_names)
-               or ratio(row["title"].lower(), old["title"].lower()) >= 88
-               for old, other_names in zip(previous + kept, previous_names + kept_names)):
+        if any(normalize_url(row['canonical_url'] or row['url']) == old['url'] or normalize_url(row['url']) == old['url'] for old in previous):
             continue
+        if any(ed.same_event(row,old) for old in kept):continue
         # Two prolific trade feeds otherwise fill the whole week: English titles
         # match more keyword groups than short Chinese ones, so without a cap
         # domestic coverage silently disappears from the report.
-        if per_source.get(row["source_id"], 0) >= MAX_ITEMS_PER_SOURCE:
-            deferred.append(row)
+        publisher = row['publisher_domain'] or ed.publisher_domain(row['canonical_url'] or row['url'])
+        if per_source.get(publisher, 0) >= MAX_ITEMS_PER_SOURCE:
             continue
-        per_source[row["source_id"]] = per_source.get(row["source_id"], 0) + 1
+        general = row['marine_relevance']==0 and row['policy_relevance']==0
+        if general and general_count>=2:continue
+        if general:
+            language='zh' if has_chinese(row['title']) else 'other'
+            if language in general_language:continue
+            general_language.add(language)
+        general_count += int(general)
+        per_source[publisher] = per_source.get(publisher, 0) + 1
         kept.append(row)
-        kept_names.append(names)
         if len(kept) >= limit:
             return kept
-    # Only top up when the capped selection is too thin to be a usable report.
-    # Refilling to `limit` would cancel the cap entirely, since the high-volume
-    # feeds always have spare rows waiting in `deferred`.
-    for row in deferred:
-        if len(kept) >= min(limit, MIN_REPORT_ITEMS):
-            break
-        names = proper_names(row["title"])
-        if any(normalize_url(row["url"]) == old["url"]
-               or (names & other_names)
-               or ratio(row["title"].lower(), old["title"].lower()) >= 88
-               for old, other_names in zip(previous + kept, previous_names + kept_names)):
-            continue
-        kept.append(row)
-        kept_names.append(names)
     return kept
 
 
@@ -960,144 +1161,29 @@ def extract_research_evidence(text: str) -> dict[str, list[str]]:
     dois = re.findall(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+", text)
     urls = re.findall(r"https?://[^\s<>\"']+", text)
     resources = [u.rstrip(".,;，。；)") for u in urls if any(k in u.lower() for k in
-                 ("github.com/", "zenodo.org/", "figshare.com/", "pangaea.de/", "data.marine.copernicus.eu/"))]
+                 ("github.com/", "zenodo.org/", "figshare.com/", "pangaea.de/", "data.marine.copernicus.eu/", "emodnet.ec.europa.eu/geoviewer", "emodnet.ec.europa.eu/en/seabed-habitats", "gebco.net/data"))]
     metrics = re.findall(r"[^。.!?\n]{0,65}(?:RMSE|MAE|R²|均方根误差|平均绝对误差)[^。!?\n]{0,65}", text, re.I)
     return {"DOI": list(dict.fromkeys(d.rstrip(".,;，。；)") for d in dois))[:3],
             "数据或代码链接": list(dict.fromkeys(resources))[:3], "精度指标原句": metrics[:2]}
 
 
-def make_report(db: Path, report_dir: Path, since_days: int, limit: int, translate: bool) -> Path:
-    conn = init_db(db)
-    recalculate_scores(conn)
-    report_dir.mkdir(parents=True, exist_ok=True)
-    date_text = datetime.now(REPORT_TIMEZONE).strftime("%Y-%m-%d")
-    output = report_dir / f"weekly-{date_text}.md"
-    rows = report_candidates(conn, report_dir, since_days, limit, date_text)
-    translator = requests.Session()
-    translator.headers.update({"User-Agent": USER_AGENT})
-    cache: dict[str, str] = {}
-    commercial = [row for row in rows if row["content_type"] == "商业市场资讯"]
-    policy = [row for row in rows if row not in commercial and row["policy_relevance"] >= 0.25]
-    research = [row for row in rows if row not in commercial + policy and row["content_type"] in ("科研成果线索", "数据与代码线索")]
-    future = [row for row in rows if row not in commercial + policy + research and row["future_relevance"] >= 0.25 and row["marine_relevance"] >= 0.15]
-    marine = [row for row in rows if row not in commercial + policy + research + future and row["marine_relevance"] >= 0.15]
-    other = [row for row in rows if row not in commercial + policy + future + research + marine]
-    lines = [
-        f"# 测绘与海洋测绘新闻周报（{date_text}）", "",
-        f"> 最近 {since_days} 天；本周报按海洋测绘、十五五/国际规划、未来技术和科研价值筛选。",
-        "> 规划关键词用于发现政策信号，不能替代对原始规划文件的正式解读。", "",
-        "> 仅收录发布日期窗口内、未在往周周报出现的新闻；本周重跑允许更新。评分仅表示关键词匹配程度。",
-        "> 摘要来自站点简介或正文节选；自动翻译未经人工校核，技术术语请对照原文。", "",
-    ]
-    last_run = conn.execute("SELECT checked_at, sources_json, config_hash FROM collection_runs ORDER BY id DESC LIMIT 1").fetchone()
-    if last_run:
-        statuses = json.loads(last_run["sources_json"])
-        incomplete = [s["name"] for s in statuses if s["status"] != "正常" and not s.get("optional")]
-        lines.extend([f"> 本期入选 {len(rows)} 条，其中商业市场资讯 {len(commercial)} 条。", ""])
-        if incomplete:
-            lines.extend(["> **采集覆盖不完整：** " + "、".join(incomplete) + "。详情见文末来源状态。", ""])
-    if not rows:
-        lines.append("本期没有符合日期与筛选条件、且未在往周收录的新闻；不表示本周没有相关新闻。\n")
-
-    def append_section(title: str, selected: list[sqlite3.Row]) -> None:
-        if not selected:
-            return
-        lines.extend([f"## {title}", ""])
-        for index, row in enumerate(selected, 1):
-            cached_title_zh = row["title_zh"]
-            if cached_title_zh == row["title"]:
-                cached_title_zh = ""
-            title_zh = cached_title_zh or (translate_text(row["title"], translator, cache) if translate else row["title"])
-            summary = row["summary"] or row["content"] or ""
-            if re.fullmatch(r"\d{8}T\d{6}Z", summary):
-                summary = ""
-            summary = summary or "暂无摘要（可点击原文查看）"
-            summary = re.sub(r"\s+", " ", summary).strip()
-            if len(summary) > 500:
-                summary = summary[:497] + "..."
-            cached_summary_zh = row["summary_zh"]
-            if re.fullmatch(r"\d{8}T\d{6}Z", cached_summary_zh or ""):
-                cached_summary_zh = ""
-            if cached_summary_zh == row["summary"]:
-                cached_summary_zh = ""
-            summary_zh = cached_summary_zh or (translate_text(summary, translator, cache) if translate else summary)
-            conn.execute("UPDATE articles SET title_zh = ?, summary_zh = ? WHERE id = ?", (title_zh, summary_zh, row["id"]))
-            tags = ", ".join(yaml.safe_load(row["tags"]) or [])
-            try:
-                focus_tags = ", ".join(yaml.safe_load(row["focus_tags"]) or [])
-            except yaml.YAMLError:
-                focus_tags = ""
-            if not focus_tags:
-                focus_tags = "常规测绘新闻"
-            if row in commercial:
-                study_hint = "只记录应用场景和产业需求；市场规模预测不能用来证明算法或装备的技术优势。"
-            elif row["policy_relevance"] >= 0.25:
-                study_hint = "先保存政策原文，记录目标、时间表、重点工程和对海洋测绘的需求。"
-            elif row in research:
-                study_hint = "先找到原论文，再核对研究区、数据获取许可、方法基线、训练与验证数据是否独立，以及精度指标。"
-            elif row["future_relevance"] >= 0.25:
-                study_hint = "记录传感器、数据源、算法、坐标基准、误差指标和可复现实验入口。"
-            elif row["research_relevance"] >= 0.25:
-                study_hint = "优先提取论文、数据集、实验方法和精度评价，作为课程项目或论文复现线索。"
-            else:
-                study_hint = "判断它是否能转化为公开数据分析、算法复现或海洋测量案例。"
-            lines.extend([
-                f"### {index}. {title_zh}", "",
-                f"- 原标题：{row['title']}", f"- 来源：{row['source_name']}",
-                f"- 日期（北京时间）：{datetime.fromisoformat(row['published_at']).astimezone(REPORT_TIMEZONE).isoformat()}",
-                f"- 内容类型（自动识别）：{row['content_type']}",
-                f"- 翻译状态：{'中文原文' if has_chinese(row['title']) else ('已有自动译文，术语待核对' if has_chinese(title_zh) and has_chinese(summary_zh) else '翻译不完整，保留原文供核对')}",
-                f"- 关键词匹配分：{row['score']:.3f}（海洋测绘 {row['marine_relevance']:.2f}，规划 {row['policy_relevance']:.2f}，未来技术 {row['future_relevance']:.2f}，科研线索 {row['research_relevance']:.2f}）",
-                f"- 方向标签：{focus_tags}", f"- 来源标签：{tags or '待分类'}", f"- 原文：[{row['url']}]({row['url']})", "",
-                f"**中文摘要：** {summary_zh}", f"**原文摘要：** {summary}", "",
-                f"**面向保研的学习提示：** {study_hint}", "",
-            ])
-            if row in research:
-                evidence = extract_research_evidence(f"{row['summary']} {row['content']}")
-                lines.append("**可复现线索（仅提取原文，未验证可用性）：**")
-                for label, values in evidence.items():
-                    lines.append(f"- {label}：" + ("；".join(values) if values else "未从已采集文本中提取到，需打开原文核对"))
-                lines.append("")
-            if row in commercial:
-                lines.extend(["商业预测仅作行业背景，不作为技术精度或科研成果证据。", ""])
-        conn.commit()
-
-    append_section("十五五与国际海洋规划信号", policy)
-    append_section("未来海洋测绘技术", future)
-    append_section("科研与保研线索（待核验）", research)
-    append_section("海洋测绘重点", marine)
-    append_section("测绘与前沿技术", other)
-    append_section("商业市场资讯（低优先级）", commercial)
-    if last_run:
-        lines.extend(["## 新闻源采集状态", "", f"采集时间：{last_run['checked_at']}", "",
-                      "| 来源 | 状态 | 近期条数（入选前） | 说明 |", "| --- | --- | ---: | --- |"])
-        for status in json.loads(last_run["sources_json"]):
-            detail = status["detail"].replace("|", "/") or "已读取，仍需通过专业评分和去重"
-            lines.append(f"| {status['name']} | {status['status']} | {status['recent']} | {detail} |")
-        lines.extend(["", "“正常但 0 条”表示本次没有符合日期、关键词的条目；“失败”表示该来源覆盖不完整。条数不代表周报入选数量。", ""])
-    output.write_text("\n".join(lines), encoding="utf-8")
-    for row in rows:
-        conn.execute("INSERT OR IGNORE INTO report_items VALUES (?, ?, ?)",
-                     (date_text, normalize_url(row["url"]), row["title"]))
-    statuses = json.loads(last_run["sources_json"]) if last_run else []
-    health = {"report_date": date_text, "checked_at": last_run["checked_at"] if last_run else None,
-              "complete": bool(statuses) and all(s["status"] == "正常" for s in statuses
-                                                if not s.get("optional")),
-              "selected": len(rows), "sources": statuses,
-              "config_hash": last_run["config_hash"] if last_run else ""}
-    (report_dir / "health.json").write_text(json.dumps(health, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    conn.commit()
-    conn.close()
-    return output
+def make_report(db: Path, report_dir: Path, since_days: int, limit: int, translate: bool, config=None) -> Path:
+    try:
+        from .student_report import render
+    except ImportError:
+        from student_report import render
+    return render(sys.modules[__name__], db, report_dir, since_days, limit, translate, config)
 
 
 def main() -> int:
+    global ACTIVE_PERIOD
     args = parse_args()
+    ACTIVE_PERIOD = None if args.rolling else report_period(week_of=args.week_of)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     if args.command in ("collect", "run"):
         collect(args.config, args.db, args.since_days, not args.no_content)
     if args.command in ("report", "run"):
-        path = make_report(args.db, args.report_dir, args.since_days, args.limit, not args.no_translate)
+        path = make_report(args.db, args.report_dir, args.since_days, args.limit, not args.no_translate, args.config)
         print(path)
     return 0
 

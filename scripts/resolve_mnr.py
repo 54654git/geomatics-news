@@ -8,6 +8,8 @@ original ministry hostname. This is DNS recovery, not a content proxy.
 from __future__ import annotations
 
 import ipaddress
+import socket
+import ssl
 import sys
 
 import requests
@@ -18,6 +20,17 @@ HOST = "www.mnr.gov.cn"
 # 阿里 DoH 返回的是国内优化 IP，runner 未必可达，放最后兜底。
 RESOLVERS = ("https://dns.google/resolve", "https://cloudflare-dns.com/dns-query",
              "https://doh.pub/dns-query", "https://dns.alidns.com/resolve")
+
+
+def reachable(address: str) -> bool:
+    """Check TCP and TLS SNI/certificate without changing any local resolver."""
+    try:
+        import certifi
+        context = ssl.create_default_context(cafile=certifi.where())
+        with socket.create_connection((address,443),timeout=4) as sock:
+            with context.wrap_socket(sock,server_hostname=HOST):
+                return True
+    except (OSError,ssl.SSLError):return False
 
 
 def public_addresses(payload: dict) -> list[str]:
@@ -53,7 +66,9 @@ def resolve_entries(session: requests.Session) -> list[str]:
             addresses = public_addresses(response.json())
             if addresses:
                 # One fresh address avoids OS-dependent hosts-file ordering.
-                return [f"{addresses[0]} {HOST}"]
+                for address in addresses[:3]:
+                    if reachable(address):return [f"{address} {HOST}"]
+                print(f"Resolver returned addresses without verified TLS reachability: {resolver}",file=sys.stderr)
         except (requests.RequestException, ValueError, TypeError, AttributeError) as exc:
             print(f"HTTPS DNS lookup failed: {resolver}: {exc}", file=sys.stderr)
     return []

@@ -1,8 +1,17 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T06:52:37.721225+00:00",
+  "period_id": "2026-11-09",
+  "period": {
+    "id": "2026-11-09",
+    "start": "2026-11-02T00:00:00+08:00",
+    "end": "2026-11-09T00:00:00+08:00"
+  },
+  "checked_at": "2026-11-09T08:40:08.230217+00:00",
+  "generated_at": "2026-11-09T16:53:03+08:00",
   "complete": true,
-  "selected": 15,
+  "core_complete": true,
+  "supplement_degraded": false,
+  "selected": 7,
   "sources": [
     {
       "id": "cnr_tech",
@@ -11,7 +20,18 @@
       "candidates": 1,
       "recent": 1,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 10,
+        "topic_rejected": 8,
+        "detail_read": 2,
+        "in_window": 1,
+        "body_available": 1,
+        "outside_window": 1,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "xinhua_tech",
@@ -20,7 +40,14 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 63,
+        "topic_rejected": 63,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "mnr_surveying",
@@ -29,7 +56,18 @@
       "candidates": 1,
       "recent": 1,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 28,
+        "topic_rejected": 14,
+        "detail_read": 14,
+        "in_window": 1,
+        "body_available": 1,
+        "outside_window": 13,
+        "detail_budget_skipped": 0
+      },
+      "selected": 1
     },
     {
       "id": "mnr_ocean",
@@ -38,7 +76,16 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 29,
+        "topic_rejected": 23,
+        "detail_read": 6,
+        "outside_window": 6,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "glut_news",
@@ -47,7 +94,14 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 2,
+        "raw_links": 20,
+        "topic_rejected": 20,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "cas_research",
@@ -56,7 +110,14 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 21,
+        "topic_rejected": 21,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "chinanews_rss",
@@ -65,7 +126,13 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "raw_links": 30,
+        "outside_window": 3,
+        "topic_rejected": 27
+      },
+      "selected": 0
     },
     {
       "id": "nmdis_news",
@@ -74,7 +141,18 @@
       "candidates": 1,
       "recent": 1,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 51,
+        "topic_rejected": 43,
+        "detail_read": 8,
+        "in_window": 1,
+        "body_available": 1,
+        "outside_window": 7,
+        "detail_budget_skipped": 0
+      },
+      "selected": 1
     },
     {
       "id": "fio_research",
@@ -83,7 +161,16 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 20,
+        "topic_rejected": 16,
+        "detail_read": 2,
+        "outside_window": 2,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "noaa_coast_survey",
@@ -92,7 +179,14 @@
       "candidates": 1,
       "recent": 1,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "raw_links": 10,
+        "in_window": 1,
+        "body_available": 1,
+        "outside_window": 9
+      },
+      "selected": 0
     },
     {
       "id": "gebco_news",
@@ -101,7 +195,12 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "raw_links": 10,
+        "outside_window": 10
+      },
+      "selected": 0
     },
     {
       "id": "seabed2030_news",
@@ -110,7 +209,12 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "raw_links": 10,
+        "outside_window": 10
+      },
+      "selected": 0
     },
     {
       "id": "hydro_international",
@@ -119,7 +223,15 @@
       "candidates": 8,
       "recent": 8,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "raw_links": 100,
+        "in_window": 8,
+        "body_available": 8,
+        "topic_rejected": 24,
+        "outside_window": 68
+      },
+      "selected": 3
     },
     {
       "id": "gim_international",
@@ -128,7 +240,15 @@
       "candidates": 6,
       "recent": 6,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "raw_links": 100,
+        "in_window": 6,
+        "body_available": 6,
+        "outside_window": 66,
+        "topic_rejected": 28
+      },
+      "selected": 1
     },
     {
       "id": "schmidt_ocean",
@@ -137,7 +257,13 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": true
+      "optional": true,
+      "metrics": {
+        "raw_links": 10,
+        "topic_rejected": 2,
+        "outside_window": 8
+      },
+      "selected": 0
     },
     {
       "id": "copernicus_marine",
@@ -146,7 +272,12 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "raw_links": 10,
+        "outside_window": 10
+      },
+      "selected": 0
     },
     {
       "id": "emodnet_news",
@@ -155,7 +286,14 @@
       "candidates": 2,
       "recent": 2,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "raw_links": 10,
+        "outside_window": 8,
+        "in_window": 2,
+        "body_available": 2
+      },
+      "selected": 1
     },
     {
       "id": "csgpc_news",
@@ -164,7 +302,16 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 10,
+        "topic_rejected": 7,
+        "detail_read": 3,
+        "outside_window": 3,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "sio_research",
@@ -173,7 +320,16 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 14,
+        "topic_rejected": 8,
+        "detail_read": 6,
+        "outside_window": 6,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "hrbeu_news",
@@ -182,7 +338,14 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 2,
+        "raw_links": 78,
+        "topic_rejected": 78,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "whu_sgg",
@@ -191,7 +354,16 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 2,
+        "raw_links": 30,
+        "topic_rejected": 18,
+        "detail_read": 12,
+        "outside_window": 12,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "ouc_news",
@@ -200,7 +372,16 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 2,
+        "raw_links": 32,
+        "topic_rejected": 31,
+        "detail_read": 1,
+        "outside_window": 1,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "tongji_sgg",
@@ -209,7 +390,16 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 7,
+        "topic_rejected": 3,
+        "detail_read": 4,
+        "outside_window": 4,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "taibo_news",
@@ -218,26 +408,147 @@
       "candidates": 0,
       "recent": 0,
       "detail": "",
-      "optional": false
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 68,
+        "topic_rejected": 68,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
     },
     {
       "id": "google_news_cn_marine",
       "name": "谷歌新闻·中文海洋测绘检索（聚合，广度补充）",
       "status": "正常",
-      "candidates": 3,
-      "recent": 3,
-      "detail": "",
-      "optional": true
+      "candidates": 4,
+      "recent": 4,
+      "detail": "；4 条聚合原文未解析，仅作待核实线索",
+      "optional": true,
+      "metrics": {
+        "raw_links": 6,
+        "topic_rejected": 2,
+        "in_window": 4,
+        "original_unresolved": 4
+      },
+      "selected": 0
     },
     {
       "id": "google_news_en_marine",
       "name": "谷歌新闻·英文海洋测绘检索（聚合，广度补充）",
       "status": "正常",
-      "candidates": 4,
-      "recent": 4,
+      "candidates": 5,
+      "recent": 5,
+      "detail": "；4 条聚合原文未解析，仅作待核实线索",
+      "optional": true,
+      "metrics": {
+        "raw_links": 10,
+        "in_window": 5,
+        "body_available": 1,
+        "topic_rejected": 5,
+        "original_unresolved": 4
+      },
+      "selected": 0
+    },
+    {
+      "id": "sdust_geomatics",
+      "name": "山东科技大学测绘与空间信息学院（本校）",
+      "status": "正常",
+      "candidates": 3,
+      "recent": 3,
       "detail": "",
-      "optional": true
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 88,
+        "topic_rejected": 53,
+        "detail_read": 18,
+        "in_window": 3,
+        "body_available": 3,
+        "outside_window": 15,
+        "detail_budget_skipped": 12
+      },
+      "selected": 0
+    },
+    {
+      "id": "sdust_survey_news",
+      "name": "山科大新闻网·测绘学院（本校）",
+      "status": "正常",
+      "candidates": 2,
+      "recent": 2,
+      "detail": "",
+      "optional": false,
+      "metrics": {
+        "list_pages": 2,
+        "raw_links": 24,
+        "topic_rejected": 8,
+        "detail_read": 16,
+        "in_window": 2,
+        "body_available": 2,
+        "outside_window": 14,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
+    },
+    {
+      "id": "sdust_ocean_news",
+      "name": "山科大新闻网·海洋学院（本校）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "",
+      "optional": false,
+      "metrics": {
+        "list_pages": 2,
+        "raw_links": 24,
+        "topic_rejected": 23,
+        "detail_read": 1,
+        "outside_window": 1,
+        "detail_budget_skipped": 0
+      },
+      "selected": 0
+    },
+    {
+      "id": "gov_cn_policy",
+      "name": "中国政府网·最新政策（官方公开 JSON）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "",
+      "optional": false,
+      "metrics": {
+        "raw_links": 1114,
+        "topic_rejected": 198,
+        "outside_window": 2
+      },
+      "selected": 0
+    },
+    {
+      "id": "ukho_official",
+      "name": "英国海道测量局 UKHO（GOV.UK 官方 Atom）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "",
+      "optional": false,
+      "metrics": {
+        "raw_links": 20,
+        "outside_window": 19,
+        "topic_rejected": 1
+      },
+      "selected": 0
     }
   ],
-  "config_hash": "6e56eb0e9fb70cd5edb3717b0a91cd10f8aa334b9118a265f3e8fb8277a6c345"
+  "config_hash": "38673861e72418bd946b133f477bbe4338b24c0898e7a33d0f4ebd18b7fff060",
+  "content_version": "7eb020ece76b106ae355826178626a586c9f1894a4b98907cc4ab95fe1ee373a",
+  "rule_version": "marine-student-v2",
+  "attempts": 1,
+  "quality": {
+    "marine": 5,
+    "research_or_data": 2,
+    "policy": 0,
+    "title_only_in_main": 0,
+    "zero_candidate_sources": 20
+  },
+  "manual_review": "规则筛选和节选；没有全网召回率保证，科研价值需结合导师意见。"
 }

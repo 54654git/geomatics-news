@@ -1,6 +1,6 @@
 """Keep DNS fallback scoped and reject unusable resolver answers."""
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from scripts import resolve_mnr as dns
 
@@ -21,7 +21,8 @@ class DNSTests(unittest.TestCase):
             self.assertEqual(dns.public_addresses({"Status": 0, "Answer": [
                 {"name": dns.HOST, "type": 1, "data": value}]}), [])
 
-    def test_tries_second_resolver_when_first_has_no_answer(self):
+    @patch.object(dns,'reachable',return_value=True)
+    def test_tries_second_resolver_when_first_has_no_answer(self, reachable):
         session = Mock()
         first, second = Mock(), Mock()
         first.json.return_value = {"Status": 2}

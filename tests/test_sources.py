@@ -33,7 +33,7 @@ class SourceTests(unittest.TestCase):
 
     def article(self, date):
         return g.Article("test", "测试来源", "水深测量与海洋测绘", "https://school.edu.cn/info/1.htm",
-                         date, "多波束测深", "", [])
+                         date, "多波束测深", "海洋测绘水深测量装备采用多波束声呐，研究测量误差和数据处理流程。"*10, [])
 
     def test_direct_html_extracts_dates_and_ignores_other_domains(self):
         listing = '<meta charset="utf-8"><a href="/info/1.htm">水深测量装备</a><a href="https://other.cn/info/2.htm">测绘新闻</a>'
@@ -285,10 +285,10 @@ class SourceTests(unittest.TestCase):
             g.save_articles(conn, [g.score_article(policy), g.score_article(future)])
             conn.close()
             report = g.make_report(root / "news.db", root / "reports", 8, 30, False).read_text(encoding="utf-8")
-            self.assertIn("十五五与国际海洋规划信号", report)
-            self.assertIn("未来海洋测绘技术", report)
+            self.assertIn("十五五与国际海洋规划、标准更新", report)
+            self.assertIn("海洋测绘技术与工程应用", report)
             self.assertIn("规划", report)
-            self.assertIn("未来技术", report)
+            self.assertIn("技术与工程应用", report)
 
 
 if __name__ == "__main__":

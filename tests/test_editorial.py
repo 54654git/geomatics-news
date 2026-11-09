@@ -14,7 +14,7 @@ from scripts.report_due import needs_collection
 class EditorialTests(unittest.TestCase):
     def article(self, title, summary="", url="https://www.noaa.gov/news/1"):
         return g.score_article(g.Article("test", "test", title, url,
-                                        datetime.now(timezone.utc).isoformat(), summary, "", []))
+                                        datetime.now(timezone.utc).isoformat(), summary, (title+'。'+summary+'。')*15, []))
 
     def test_wetland_paper_is_not_a_five_year_plan(self):
         a = self.article("国家海洋信息中心在滨海湿地空间规划与治理研究方面取得新进展",
@@ -105,7 +105,8 @@ class EditorialTests(unittest.TestCase):
                           sources=[{"status": "失败"}], config_hash=hashlib.sha256(config.read_bytes()).hexdigest())
             path.write_text(json.dumps(health))
             self.assertTrue(needs_collection(root, now))
-            health.update(complete=True, sources=[{"status": "正常"}])
+            from src.periods import report_period, content_version
+            health.update(complete=True, sources=[{"status": "正常"}],period_id=report_period(now)['id'],content_version=content_version(root))
             path.write_text(json.dumps(health))
             self.assertFalse(needs_collection(root, now))
             config.write_text("sources: [new]")
@@ -134,6 +135,7 @@ class EditorialTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             conn = g.init_db(Path(folder) / "news.db")
             article = self.article("多波束水深测量新成果")
+            article.content = ''  # This regression explicitly starts with a missing body.
             g.save_articles(conn, [article])
             article.content = "补采得到的论文正文和精度指标"
             self.assertEqual(g.save_articles(conn, [article]), 0)
@@ -155,7 +157,7 @@ class EditorialTests(unittest.TestCase):
             g.save_articles(conn, [self.article("地理信息产业数字孪生与时空智能", "遥感人工智能")])
             conn.close()
             text = g.make_report(root / "news.db", root / "reports", 8, 30, False).read_text(encoding="utf-8")
-            self.assertIn("## 测绘与前沿技术", text)
+            self.assertIn("## 可迁移的测绘方法", text)
             self.assertNotIn("## 未来海洋测绘技术", text)
 
 
