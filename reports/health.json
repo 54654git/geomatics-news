@@ -1,8 +1,8 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T04:05:35.666189+00:00",
+  "checked_at": "2026-11-09T04:11:27.244811+00:00",
   "complete": false,
-  "selected": 29,
+  "selected": 20,
   "sources": [
     {
       "id": "cnr_tech",
@@ -23,18 +23,18 @@
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "失败",
-      "candidates": 0,
-      "recent": 0,
-      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re"
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
     },
     {
       "id": "mnr_ocean",
       "name": "自然资源部·海洋（直接采集）",
-      "status": "失败",
+      "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/hy/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re"
+      "detail": ""
     },
     {
       "id": "glut_news",
