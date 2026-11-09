@@ -1,8 +1,8 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T03:28:58.729466+00:00",
+  "checked_at": "2026-11-09T03:58:36.268003+00:00",
   "complete": false,
-  "selected": 3,
+  "selected": 29,
   "sources": [
     {
       "id": "cnr_tech",
@@ -23,18 +23,18 @@
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "正常",
-      "candidates": 1,
-      "recent": 1,
-      "detail": ""
+      "status": "失败",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re"
     },
     {
       "id": "mnr_ocean",
       "name": "自然资源部·海洋（直接采集）",
-      "status": "正常",
+      "status": "失败",
       "candidates": 0,
       "recent": 0,
-      "detail": ""
+      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/hy/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re"
     },
     {
       "id": "glut_news",
@@ -56,8 +56,8 @@
       "id": "chinanews_rss",
       "name": "中国新闻网·即时新闻 RSS",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 2,
+      "recent": 2,
       "detail": ""
     },
     {
@@ -101,13 +101,117 @@
       "detail": ""
     },
     {
+      "id": "gdelt_en_marine",
+      "name": "GDELT 国际海洋测绘新闻（限流备用，试运行）",
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
+    },
+    {
       "id": "esa_earth_observation",
       "name": "ESA Earth Observation",
       "status": "失败",
       "candidates": 0,
       "recent": 0,
       "detail": "404 Client Error: Not Found for url: https://www.esa.int/rssfeed/Our_Activities/Observing_the_Earth"
+    },
+    {
+      "id": "hydro_international",
+      "name": "Hydro International（国际海道测量行业媒体 RSS）",
+      "status": "正常",
+      "candidates": 8,
+      "recent": 8,
+      "detail": ""
+    },
+    {
+      "id": "gim_international",
+      "name": "GIM International（国际测绘行业媒体 RSS）",
+      "status": "正常",
+      "candidates": 6,
+      "recent": 6,
+      "detail": ""
+    },
+    {
+      "id": "schmidt_ocean",
+      "name": "Schmidt Ocean Institute（官方 RSS）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "copernicus_marine",
+      "name": "Copernicus Marine（欧盟海洋观测官方 RSS）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "emodnet_news",
+      "name": "EMODnet 欧洲海洋观测数据网（官方 RSS）",
+      "status": "正常",
+      "candidates": 2,
+      "recent": 2,
+      "detail": ""
+    },
+    {
+      "id": "csgpc_news",
+      "name": "中国测绘学会·学会动态（直接采集）",
+      "status": "正常",
+      "candidates": 2,
+      "recent": 2,
+      "detail": ""
+    },
+    {
+      "id": "sio_research",
+      "name": "自然资源部第二海洋研究所·科研成果（直接采集）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "hrbeu_news",
+      "name": "哈尔滨工程大学·要闻（直接采集）",
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": ""
+    },
+    {
+      "id": "whu_sgg",
+      "name": "武汉大学测绘学院·学院新闻（直接采集）",
+      "status": "正常",
+      "candidates": 2,
+      "recent": 2,
+      "detail": ""
+    },
+    {
+      "id": "ouc_news",
+      "name": "中国海洋大学·海大要闻（直接采集）",
+      "status": "正常",
+      "candidates": 5,
+      "recent": 5,
+      "detail": ""
+    },
+    {
+      "id": "tongji_sgg",
+      "name": "同济大学测绘与地理信息学院（直接采集）",
+      "status": "正常",
+      "candidates": 0,
+      "recent": 0,
+      "detail": ""
+    },
+    {
+      "id": "taibo_news",
+      "name": "泰伯网·测绘地理信息行业媒体（直接采集）",
+      "status": "正常",
+      "candidates": 5,
+      "recent": 5,
+      "detail": ""
     }
   ],
-  "config_hash": "2078d1b9e001ce74d0675d5c606b5950368789006755b641279f13025e504d58"
+  "config_hash": "ab778992e6f4a8241ccdacab48242f04a3541b68c4f0edffbf5661b5023e567b"
 }
