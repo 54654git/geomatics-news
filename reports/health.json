@@ -1,8 +1,8 @@
 {
   "report_date": "2026-11-09",
-  "checked_at": "2026-11-09T04:11:27.244811+00:00",
+  "checked_at": "2026-11-09T04:16:27.126815+00:00",
   "complete": false,
-  "selected": 20,
+  "selected": 17,
   "sources": [
     {
       "id": "cnr_tech",
@@ -176,8 +176,8 @@
       "id": "whu_sgg",
       "name": "武汉大学测绘学院·学院新闻（直接采集）",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     },
     {
@@ -200,10 +200,10 @@
       "id": "taibo_news",
       "name": "泰伯网·测绘地理信息行业媒体（直接采集）",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 0,
+      "recent": 0,
       "detail": ""
     }
   ],
-  "config_hash": "358f7fd2250c697ace409b85cbe14cc9fef74ac1abb8b5a180dd26d0bab7c53d"
+  "config_hash": "c85517300124da15d8d280acfb134758880e3662f9f3a8714f5fb07ca2249b36"
 }
