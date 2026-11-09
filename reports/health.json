@@ -6,12 +6,12 @@
     "start": "2026-11-02T00:00:00+08:00",
     "end": "2026-11-09T00:00:00+08:00"
   },
-  "checked_at": "2026-11-09T08:40:08.230217+00:00",
-  "generated_at": "2026-11-09T16:53:03+08:00",
+  "checked_at": "2026-11-09T09:01:00.137059+00:00",
+  "generated_at": "2026-11-09T17:01:00+08:00",
   "complete": true,
   "core_complete": true,
   "supplement_degraded": false,
-  "selected": 7,
+  "selected": 8,
   "sources": [
     {
       "id": "cnr_tech",
@@ -129,8 +129,8 @@
       "optional": false,
       "metrics": {
         "raw_links": 30,
-        "outside_window": 3,
-        "topic_rejected": 27
+        "topic_rejected": 28,
+        "outside_window": 2
       },
       "selected": 0
     },
@@ -439,16 +439,16 @@
       "status": "正常",
       "candidates": 5,
       "recent": 5,
-      "detail": "；4 条聚合原文未解析，仅作待核实线索",
+      "detail": "；3 条聚合原文未解析，仅作待核实线索",
       "optional": true,
       "metrics": {
         "raw_links": 10,
         "in_window": 5,
-        "body_available": 1,
+        "body_available": 2,
         "topic_rejected": 5,
-        "original_unresolved": 4
+        "original_unresolved": 3
       },
-      "selected": 0
+      "selected": 1
     },
     {
       "id": "sdust_geomatics",
@@ -542,9 +542,9 @@
   "config_hash": "38673861e72418bd946b133f477bbe4338b24c0898e7a33d0f4ebd18b7fff060",
   "content_version": "7eb020ece76b106ae355826178626a586c9f1894a4b98907cc4ab95fe1ee373a",
   "rule_version": "marine-student-v2",
-  "attempts": 1,
+  "attempts": 2,
   "quality": {
-    "marine": 5,
+    "marine": 6,
     "research_or_data": 2,
     "policy": 0,
     "title_only_in_main": 0,
