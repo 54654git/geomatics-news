@@ -562,7 +562,6 @@ sources:
   - sgg.whu.edu.cn
   title_xpath: ".//span"
   required_terms:
-  - 测绘
   - 遥感
   - 北斗
   - 地理信息
@@ -641,7 +640,6 @@ sources:
   - 激光雷达
   - 点云
   - 水下
-  - 时空
   - GIS
   - 实景三维
   - 倾斜摄影
