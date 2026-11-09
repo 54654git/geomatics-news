@@ -98,7 +98,8 @@ class EditorialTests(unittest.TestCase):
             config.write_text("sources: []", encoding="utf-8")
             (root / "reports").mkdir()
             now = datetime.now(g.REPORT_TIMEZONE)
-            date = now.date().isoformat()
+            from src.periods import report_period
+            date = report_period(now)['id']
             (root / "reports" / f"weekly-{date}.md").write_text("report")
             path = root / "reports" / "health.json"
             health = dict(report_date=date, checked_at=now.isoformat(), complete=False,

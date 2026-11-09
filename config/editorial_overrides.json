@@ -4,8 +4,10 @@
     "basis": "2026-11-09 核查已读取的发布者正文后改写中文标题；原题与原文保留。"
   },
   "https://www.hydro-international.com/news/seaber-launches-compact-auv-for-mine-countermeasures-and-underwater-surveys": {
-    "title_zh": "Seaber 发布紧凑型 AUV RAVEN，面向水下测量等任务",
-    "basis": "2026-11-09 核查已读取的发布者正文后改写中文标题；原题与原文保留。"
+    "title_zh": "Seaber RAVEN 紧凑型 AUV：本周报道与测量系统线索",
+    "summary_zh": "本周行业媒体介绍 RAVEN 紧凑型 AUV 的海底测量等用途。厂商称其质量为 13 千克、艇体直径为 12 厘米，配备 LYNX 光学惯性导航系统。上述为厂商参数；导航漂移并不等于水深测量精度，仍需核对测深载荷、作业条件及独立验证。",
+    "review_note": "原媒体报道将直径写作 1cm，与[厂商 RAVEN 产品页](https://seaber.fr/raven)的 12cm 不符，中文摘要采用厂商值并保留原报道供对照。[厂商首次发布稿](https://seaber.fr/news/introducing-raven-the-next-generation-compact-auv-for-mine-countermeasures-and-underwater-surveys)日期为 2026-10-26；本期收录的是 2026-11-02 媒体报道，不能称本周首次发布。",
+    "basis": "2026-11-09 对照厂商产品页和 2026-10-26 发布稿核查参数、时间；原题与原文保留。"
   },
   "https://www.hydro-international.com/news/ukho-and-esa-take-s-100-beyond-navigation": {
     "title_zh": "UKHO 与 ESA 推动 S-100 海洋数据和卫星信息融合应用",
@@ -21,6 +23,8 @@
   },
   "https://www.mnr.gov.cn/dt/dfdt/202611/t20261104_2941798.html": {
     "title_zh": "移动应用与 RTK 联合作业用于自然资源用地核查",
+    "summary_zh": "报道介绍郴州市苏仙区使用“天巡助手 APP+RTK移动终端”进行用地核查，依托省级 CORS 基站获取差分改正。文中给出 3～5 厘米定位精度的报道值，但没有提供独立检核数据。适合用来认识移动采集、差分定位和业务核查的流程。",
+    "review_note": "原稿称作业“不受天气、地形制约”，不能据此理解为 RTK 没有使用条件。阅读时应继续核对卫星可见性、多路径、通信和坐标基准等限制。",
     "basis": "2026-11-09 核查已读取的发布者正文后改写中文标题；原题与原文保留。"
   }
 }

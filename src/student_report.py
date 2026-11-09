@@ -71,6 +71,7 @@ def render(g, db, report_dir, since_days, limit, translate, config=None):
         out=out.replace('本周的本周地图','本周地图')
         if 'Coast Survey' in text:out=out.replace('海岸调查','海岸测量')
         if 'UK Hydrographic Office' in text:out=out.replace('英国海道测量办公室','英国海道测量局')
+        if 'uncrewed surface vessel' in text.lower():out=out.replace('无人水面舰艇','无人水面艇')
         return out
 
     def append(title,selected):
@@ -90,21 +91,26 @@ def render(g, db, report_dir, since_days, limit, translate, config=None):
             url=r['canonical_url'] or r['url']
             note=overrides.get(url,{})
             zh=note.get('title_zh') or zh
+            summary_zh=note.get('summary_zh') or summary_zh
+            summary_label='人工核对摘要' if note.get('summary_zh') else '原文节选'
             body_status=ed.body_level(r['title'],r['summary'],r['content'])
             lines.extend([f'### {i}. {zh}','',f'- 原标题：{r["title"]}',f'- 来源：{r["source_name"]}',
                           f'- 日期（北京时间）：{datetime.fromisoformat(r["published_at"]).astimezone(g.REPORT_TIMEZONE).isoformat()}；依据：{r["date_basis"] or "来源发布日期"}。',
                           f'- 内容类型：{r["content_type"]}；正文状态：{body_status}。',
-                          f'- 原文：[{url}]({url})','',f'**中文要点（原文节选）：** {summary_zh}',''])
+                          f'- 原文：[{url}]({url})','',f'**中文要点（{summary_label}）：** {summary_zh}',''])
+            if note.get('review_note'):
+                lines.extend([f'**核查说明：** {note["review_note"]}',''])
             if not g.has_chinese(r['title']):
                 lines.extend(['<details><summary>展开英文关键句，对照专业术语</summary>','',excerpt,'','</details>','',
-                              f'**翻译状态：** {"自动翻译，术语已做规则修正，仍需对照原文" if g.has_chinese(summary_zh) else "翻译服务未成功，保留原文"}。',''])
+                              f'**翻译状态：** {"人工核对中文摘要；上方英文保留原报道措辞" if note.get("summary_zh") else ("自动翻译，术语已做规则修正，仍需对照原文" if g.has_chinese(summary_zh) else "翻译服务未成功，保留原文")}。',''])
             if r['content_type']=='技术与工程进展':
                 lines.extend(['**阅读定位：** 装备发布、合同或工程应用可用于认识测量链；仅凭新闻不能确认独立精度或算法优越性。',''])
             evidence=g.extract_research_evidence((r['content'] or '')+' '+(r['summary'] or ''))
             if r in research or any(evidence.values()):
                 lines.append('**论文、数据与验证依据（仅列原文实际出现的入口）：**')
                 for label,values in evidence.items():
-                    lines.append(f'- {label}：'+('；'.join(values) if values else '已采集文本中未找到，尚不能确认开放或可复现。'))
+                    missing={'DOI':'未找到论文 DOI，未确认对应论文。','数据或代码链接':'未找到公开入口，未确认数据或代码开放。','精度指标原句':'未找到误差指标，不据此判断精度。'}
+                    lines.append(f'- {label}：'+('；'.join(values) if values else missing.get(label,'已采集文本中未找到。')))
                 lines.append('')
             task=ed.student_task(r['title'],r['content'],r['content_type'])
             if task:

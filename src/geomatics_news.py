@@ -1160,7 +1160,7 @@ def extract_research_evidence(text: str) -> dict[str, list[str]]:
     """Extract only literal leads. Links and metrics are not independently verified."""
     dois = re.findall(r"\b10\.\d{4,9}/[-._;()/:A-Za-z0-9]+", text)
     urls = re.findall(r"https?://[^\s<>\"']+", text)
-    resources = [u.rstrip(".,;，。；)") for u in urls if any(k in u.lower() for k in
+    resources = [u.rstrip(".,;，。；)") for u in urls if 'glossary' not in u.lower() and any(k in u.lower() for k in
                  ("github.com/", "zenodo.org/", "figshare.com/", "pangaea.de/", "data.marine.copernicus.eu/", "emodnet.ec.europa.eu/geoviewer", "emodnet.ec.europa.eu/en/seabed-habitats", "gebco.net/data"))]
     metrics = re.findall(r"[^。.!?\n]{0,65}(?:RMSE|MAE|R²|均方根误差|平均绝对误差)[^。!?\n]{0,65}", text, re.I)
     return {"DOI": list(dict.fromkeys(d.rstrip(".,;，。；)") for d in dois))[:3],

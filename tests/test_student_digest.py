@@ -34,6 +34,16 @@ class StudentDigestTests(unittest.TestCase):
         self.assertIn(ed.genre('How is hydrography changing? Take part in the 2027 industry survey','data researchers'),ed.LOW_PRIORITY)
         self.assertNotEqual(ed.genre('Leica targets surveying with Captivate','The controller handles large survey datasets.'),'数据与代码线索')
 
+    def test_tasks_follow_article_subject_without_incidental_standard_word(self):
+        task=ed.student_task('智能测绘作业模式助力用地核查','依托CORS，使用RTK移动终端开展地标准确核查。','技术与工程进展')
+        self.assertEqual(task[0],'GNSS 与 RTK 定位基础')
+        habitat=ed.student_task('Map of the Week – Seabed habitats - Mäerl Habitats','A modelled habitat distribution map.','数据与代码线索')
+        self.assertEqual(habitat[0],'海洋公开数据与专题制图')
+
+    def test_glossary_is_not_a_download_resource(self):
+        evidence=g.extract_research_evidence('https://emodnet.ec.europa.eu/en/seabed-habitats-glossary#x https://emodnet.ec.europa.eu/geoviewer/')
+        self.assertEqual(evidence['数据或代码链接'],['https://emodnet.ec.europa.eu/geoviewer/'])
+
     def test_long_aggregate_title_is_not_a_real_abstract(self):
         title='NOAA: Nearly all of the ocean floor near the Marianas have been mapped out, valuable and timely for lease sales'
         self.assertEqual(ed.body_level(title,title+' Publisher',title+' Publisher'),'仅有标题，待核实')
