@@ -1,8 +1,8 @@
 """Collect, score, translate and report geomatics news.
 
-Domestic coverage uses public news lists and official RSS directly. GDELT
-provides optional supplementary search. Translation is best-effort and never
-prevents a report from being made.
+Domestic coverage uses public news lists and official RSS directly. Google News
+RSS provides optional wide-angle search; GDELT is retained as a disabled
+fallback. Translation is best-effort and never prevents a report from being made.
 """
 
 from __future__ import annotations
@@ -47,6 +47,7 @@ TRANSLATE_ENDPOINT = "https://translate.googleapis.com/translate_a/single"
 MYMEMORY_ENDPOINT = "https://api.mymemory.translated.net/get"
 GDELT_LAST_REQUEST = 0.0
 GDELT_COOLDOWN_UNTIL = 0.0
+GOOGLE_NEWS_ENDPOINT = "https://news.google.com/rss/search"
 REPORT_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 KEYWORD_GROUPS: dict[str, tuple[str, ...]] = {
@@ -516,6 +517,65 @@ def collect_gdelt(source: dict[str, Any], session: requests.Session, fetch_conte
     return articles
 
 
+def collect_google_news(source: dict[str, Any], session: requests.Session, fetch_content: bool,
+                        since_days: int = 8) -> list[Article]:
+    """Search Google News RSS.
+
+    Used instead of GDELT, whose API rejects this project's egress with HTTP 429
+    regardless of query shape. Entries link to a Google redirect, so the
+    publisher page cannot be fetched; the aggregator summary is kept instead.
+    """
+    params = {"q": source["query"], "hl": source.get("hl", "en-US"),
+              "gl": source.get("gl", "US"), "ceid": source.get("ceid", "US:en")}
+    # Google News ranks by relevance and will happily return headlines from
+    # years ago; when: restricts the window server-side. The window tracks
+    # --since-days so the feed and the local freshness filter cannot disagree.
+    if " when:" not in params["q"]:
+        params["q"] = f"({params['q']}) when:{since_days}d"
+    # ceid must keep its colon; percent-encoded "CN%3Azh-Hans" makes Google fall
+    # back to an unlocalised feed that returns years-old headlines.
+    url = f"{GOOGLE_NEWS_ENDPOINT}?{urlencode(params, safe=':')}"
+    try:
+        response = session.get(url, timeout=30)
+        response.raise_for_status()
+        parsed = feedparser.parse(response.content)
+    except requests.RequestException as exc:
+        raise SourceError(str(exc)) from exc
+    if not parsed.entries:
+        raise SourceError("Google 新闻搜索没有返回条目，查询可能过长或已被限流")
+    blocked = [str(domain).lower() for domain in source.get("blocked_domains", [])]
+    articles: list[Article] = []
+    for entry in parsed.entries[: int(source.get("max_items", 30))]:
+        title = clean_text(entry.get("title"))
+        if not title:
+            continue
+        publisher = clean_text((entry.get("source") or {}).get("title"))
+        # Headlines arrive as "标题 - 媒体名"; the suffix would defeat the
+        # title-similarity de-duplication against the publisher's own feed.
+        for separator in (" - ", " – ", " — "):
+            if publisher and title.endswith(separator + publisher):
+                title = title[: -len(separator + publisher)].strip()
+                break
+        url = normalize_url(entry.get("link", ""))
+        if not title or not url:
+            continue
+        domain = urlsplit((entry.get("source") or {}).get("href") or "").netloc.lower()
+        if blocked and any(domain.endswith(entry_domain) for entry_domain in blocked):
+            continue
+        summary = clean_text(entry.get("summary"))
+        if not required_match(source, f"{title} {summary}"):
+            continue
+        if source.get("language") == "Chinese" and not has_chinese(title):
+            continue
+        name = f"{source.get('name', source['id'])} · {publisher}" if publisher else source.get("name", source["id"])
+        article = Article(source["id"], name, title, url, parse_date(entry), summary, summary,
+                          list(source.get("tags", [])))
+        if not is_recent(article, since_days):
+            continue
+        articles.append(article)
+    return articles
+
+
 def keyword_hits(text: str, words: Iterable[str]) -> int:
     # The policy phrase 向海图强 does not mean nautical chart (海图).
     lowered = text.lower().replace("向海图强", "海洋发展")
@@ -685,6 +745,8 @@ def collect(config: Path, db: Path, since_days: int, fetch_content: bool) -> int
             kind = source.get("type", "rss")
             if kind == "gdelt":
                 items = collect_gdelt(source, session, fetch_content, since_days)
+            elif kind == "google_news":
+                items = collect_google_news(source, session, fetch_content, since_days)
             elif kind == "html":
                 items, errors = collect_html(source, session, fetch_content, since_days)
                 if errors:

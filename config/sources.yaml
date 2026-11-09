@@ -232,7 +232,7 @@ sources:
   max_content_items: 5
   enabled: false
 - id: gdelt_en_marine
-  name: GDELT 国际海洋测绘新闻（限流备用，试运行）
+  name: GDELT 国际海洋测绘新闻（已停用：API 限流）
   type: gdelt
   query: ("hydrographic survey" OR bathymetry OR multibeam OR sonar OR "ocean mapping" OR AUV)
   language: English
@@ -253,7 +253,9 @@ sources:
   max_items: 15
   max_content_items: 5
   optional: true
-  enabled: true
+  # 2026-11-09 实测：本机出口与 GitHub runner 均持续返回 429，且与查询复杂度无关
+  # （单词查询同样被拒），说明限流按出口 IP 而非查询量计。改由 google_news_* 替代。
+  enabled: false
 - id: gdelt_en_ocean_policy
   name: GDELT 国际海洋规划与标准新闻（限流备用，默认关闭）
   type: gdelt
@@ -651,4 +653,65 @@ sources:
   - 测绘
   max_items: 10
   request_interval: 1
+  enabled: true
+- id: google_news_cn_marine
+  name: 谷歌新闻·中文海洋测绘检索（聚合，广度补充）
+  type: google_news
+  # 词组式检索：避免单独用「多波束」命中微波通信；「海道测量」类高辨识词组优先。
+  # 时间窗口由采集器按 --since-days 自动追加 when:Nd，不要写死在这里。
+  query: '"海洋测绘" OR "海道测量" OR "水深测量" OR "海底地形" OR "水下测绘" OR ("多波束" 测深)'
+  hl: zh-CN
+  gl: CN
+  ceid: CN:zh-Hans
+  language: Chinese
+  # 第二道关：政治或社会类稿件往往不含技术测量词，靠词表挡在入库之前。
+  required_terms:
+  - 海道测量
+  - 水深测量
+  - 多波束测深
+  - 海底地形
+  - 水下测绘
+  - 海洋测绘
+  - 测量船
+  - 勘察
+  - 测深
+  - 声呐
+  - 海山
+  # 聚合检索会带出境外政治媒体针对中国海洋活动的评论，不进入行业周报。
+  blocked_domains:
+  - rfa.org
+  tags:
+  - 聚合检索
+  - 海洋测绘
+  - 海道测量
+  max_items: 15
+  optional: true
+  enabled: true
+- id: google_news_en_marine
+  name: 谷歌新闻·英文海洋测绘检索（聚合，广度补充）
+  type: google_news
+  query: '"hydrographic survey" OR bathymetry OR "bathymetric survey" OR multibeam OR "seafloor mapping" OR "ocean mapping"'
+  hl: en-US
+  gl: US
+  ceid: US:en
+  language: English
+  # English headlines name the object rather than the discipline, so ocean floor,
+  # sea floor, water depth and echosounder must stay here or real surveys drop out.
+  required_terms:
+  - hydrographic
+  - bathymetr
+  - multibeam
+  - seafloor
+  - sea floor
+  - ocean floor
+  - ocean mapping
+  - sonar
+  - echosounder
+  - water depth
+  tags:
+  - 聚合检索
+  - 海洋测绘
+  - bathymetry
+  max_items: 15
+  optional: true
   enabled: true

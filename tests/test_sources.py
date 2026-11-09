@@ -127,6 +127,47 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(len(articles), 1)
         fetch.assert_called_once_with("https://noaa.gov/new", session)
 
+    def test_google_news_strips_publisher_suffix_and_caps_window(self):
+        recent = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        feed = f'''<rss version="2.0"><channel><title>q</title>
+        <item><title>海道测量船“海巡08”轮列编 - 新华网</title>
+        <link>https://news.google.com/rss/articles/ABC</link>
+        <pubDate>{recent}</pubDate>
+        <source url="https://www.news.cn">新华网</source></item>
+        <item><title>日美神经质尖叫：中国大量船只究竟在干什么？ - 搜狐网</title>
+        <link>https://news.google.com/rss/articles/DEF</link>
+        <pubDate>{recent}</pubDate>
+        <source url="https://www.sohu.com">搜狐网</source></item></channel></rss>'''
+        session = Mock()
+        session.get.return_value = response(feed)
+        source = dict(id="gnews", name="谷歌新闻", type="google_news", query='"海道测量"',
+                      hl="zh-CN", gl="CN", ceid="CN:zh-Hans", language="Chinese",
+                      required_terms=["海道测量"], max_items=10)
+        articles = g.collect_google_news(source, session, False, 8)
+        self.assertEqual(len(articles), 1)
+        # The " - 媒体名" suffix must go or title-similarity de-duplication fails.
+        self.assertEqual(articles[0].title, "海道测量船“海巡08”轮列编")
+        self.assertIn("新华网", articles[0].source_name)
+        url = session.get.call_args[0][0]
+        # A percent-encoded colon makes Google ignore the locale and return
+        # years-old headlines, so both the window and the raw colon must survive.
+        self.assertIn("ceid=CN:zh-Hans", url)
+        self.assertIn("when:8d", url)
+
+    def test_google_news_drops_blocked_publishers(self):
+        recent = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
+        feed = f'''<rss version="2.0"><channel><title>q</title>
+        <item><title>中国大力发展海洋测绘近期活动引发六国不满 - 自由亚洲电台</title>
+        <link>https://news.google.com/rss/articles/GHI</link>
+        <pubDate>{recent}</pubDate>
+        <source url="https://www.rfa.org/mandarin">自由亚洲电台</source></item></channel></rss>'''
+        session = Mock()
+        session.get.return_value = response(feed)
+        source = dict(id="gnews", name="谷歌新闻", type="google_news", query='"海洋测绘"',
+                      hl="zh-CN", gl="CN", ceid="CN:zh-Hans", language="Chinese",
+                      required_terms=["海洋测绘"], max_items=10, blocked_domains=["rfa.org"])
+        self.assertEqual(g.collect_google_news(source, session, False, 8), [])
+
     def test_official_rss_full_text_is_used_without_webpage_request(self):
         recent = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
         feed = f'''<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
