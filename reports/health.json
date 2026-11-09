@@ -6,8 +6,8 @@
     "start": "2026-11-02T00:00:00+08:00",
     "end": "2026-11-09T00:00:00+08:00"
   },
-  "checked_at": "2026-11-09T09:01:00.137059+00:00",
-  "generated_at": "2026-11-09T17:01:00+08:00",
+  "checked_at": "2026-11-09T09:08:02.462775+00:00",
+  "generated_at": "2026-11-09T17:08:02+08:00",
   "complete": true,
   "core_complete": true,
   "supplement_degraded": false,
@@ -129,8 +129,8 @@
       "optional": false,
       "metrics": {
         "raw_links": 30,
-        "topic_rejected": 28,
-        "outside_window": 2
+        "topic_rejected": 29,
+        "outside_window": 1
       },
       "selected": 0
     },
@@ -517,7 +517,7 @@
       "detail": "",
       "optional": false,
       "metrics": {
-        "raw_links": 1114,
+        "raw_links": 1115,
         "topic_rejected": 198,
         "outside_window": 2
       },
@@ -540,9 +540,9 @@
     }
   ],
   "config_hash": "38673861e72418bd946b133f477bbe4338b24c0898e7a33d0f4ebd18b7fff060",
-  "content_version": "7eb020ece76b106ae355826178626a586c9f1894a4b98907cc4ab95fe1ee373a",
+  "content_version": "59dc0d9a9326c55a518842203780f888ac12487fdea812d79ac4f161fb1ad0c5",
   "rule_version": "marine-student-v2",
-  "attempts": 2,
+  "attempts": 1,
   "quality": {
     "marine": 6,
     "research_or_data": 2,
