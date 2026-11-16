@@ -6,11 +6,11 @@
     "start": "2026-11-09T00:00:00+08:00",
     "end": "2026-11-16T00:00:00+08:00"
   },
-  "checked_at": "2026-11-16T02:20:41.440432+00:00",
-  "generated_at": "2026-11-16T10:20:41+08:00",
-  "complete": false,
-  "core_complete": false,
-  "supplement_degraded": false,
+  "checked_at": "2026-11-16T02:41:35.719004+00:00",
+  "generated_at": "2026-11-16T10:41:36+08:00",
+  "complete": true,
+  "core_complete": true,
+  "supplement_degraded": true,
   "selected": 4,
   "sources": [
     {
@@ -50,23 +50,39 @@
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "失败",
-      "candidates": 0,
-      "recent": 0,
-      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re",
-      "optional": false,
-      "metrics": {},
+      "status": "部分失败",
+      "candidates": 1,
+      "recent": 1,
+      "detail": "https://www.mnr.gov.cn/dt/dfdt/202610/t20261009_2939697.html: HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Read timed out.",
+      "optional": true,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 28,
+        "topic_rejected": 14,
+        "detail_read": 13,
+        "outside_window": 12,
+        "in_window": 1,
+        "body_available": 1,
+        "detail_budget_skipped": 0
+      },
       "selected": 0
     },
     {
       "id": "mnr_ocean",
       "name": "自然资源部·海洋（直接采集）",
-      "status": "失败",
+      "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/hy/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re",
-      "optional": false,
-      "metrics": {},
+      "detail": "",
+      "optional": true,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 29,
+        "topic_rejected": 23,
+        "detail_read": 6,
+        "outside_window": 6,
+        "detail_budget_skipped": 0
+      },
       "selected": 0
     },
     {
@@ -434,19 +450,19 @@
       "id": "sdust_geomatics",
       "name": "山东科技大学测绘与空间信息学院（本校）",
       "status": "正常",
-      "candidates": 5,
-      "recent": 5,
+      "candidates": 2,
+      "recent": 2,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 1,
         "raw_links": 88,
-        "topic_rejected": 54,
+        "topic_rejected": 65,
         "detail_read": 18,
-        "in_window": 5,
-        "body_available": 5,
-        "outside_window": 13,
-        "detail_budget_skipped": 10
+        "in_window": 2,
+        "body_available": 2,
+        "outside_window": 16,
+        "detail_budget_skipped": 1
       },
       "selected": 0
     },
@@ -454,19 +470,19 @@
       "id": "sdust_survey_news",
       "name": "山科大新闻网·测绘学院（本校）",
       "status": "正常",
-      "candidates": 6,
-      "recent": 6,
+      "candidates": 1,
+      "recent": 1,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 2,
         "raw_links": 24,
-        "topic_rejected": 5,
-        "detail_read": 18,
-        "in_window": 6,
-        "body_available": 6,
-        "outside_window": 12,
-        "detail_budget_skipped": 1
+        "topic_rejected": 15,
+        "detail_read": 9,
+        "in_window": 1,
+        "body_available": 1,
+        "outside_window": 8,
+        "detail_budget_skipped": 0
       },
       "selected": 0
     },
@@ -519,8 +535,8 @@
       "selected": 0
     }
   ],
-  "config_hash": "38673861e72418bd946b133f477bbe4338b24c0898e7a33d0f4ebd18b7fff060",
-  "content_version": "59dc0d9a9326c55a518842203780f888ac12487fdea812d79ac4f161fb1ad0c5",
+  "config_hash": "3af97e03ada003d33945c2fc2a60824f1a089d01945abbe10114716c3c577709",
+  "content_version": "c1706ef3d1a5daa4250e52cd0b3d5ce180bb93bc831b904744ffa7f77f1ee879",
   "rule_version": "marine-student-v2",
   "attempts": 1,
   "quality": {
@@ -528,7 +544,7 @@
     "research_or_data": 1,
     "policy": 0,
     "title_only_in_main": 0,
-    "zero_candidate_sources": 22
+    "zero_candidate_sources": 21
   },
   "manual_review": "规则筛选和节选；没有全网召回率保证，科研价值需结合导师意见。"
 }
