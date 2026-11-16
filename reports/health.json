@@ -6,8 +6,8 @@
     "start": "2026-11-09T00:00:00+08:00",
     "end": "2026-11-16T00:00:00+08:00"
   },
-  "checked_at": "2026-11-16T02:51:03.762203+00:00",
-  "generated_at": "2026-11-16T10:51:04+08:00",
+  "checked_at": "2026-11-16T06:44:53.091848+00:00",
+  "generated_at": "2026-11-16T14:44:53+08:00",
   "complete": true,
   "core_complete": true,
   "supplement_degraded": true,
@@ -53,7 +53,7 @@
       "status": "部分失败",
       "candidates": 1,
       "recent": 1,
-      "detail": "https://www.mnr.gov.cn/dt/dfdt/202611/t20261104_2941798.html: HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/dfdt/202611/t20261104_2941798.html (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='www.mnr.g",
+      "detail": "https://www.mnr.gov.cn/dt/ywbb/202609/t20260908_2937903.html: HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ywbb/202609/t20260908_2937903.html (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='www.mnr.g",
       "optional": true,
       "metrics": {
         "list_pages": 1,
@@ -538,7 +538,7 @@
   "config_hash": "28c4666b5e0cea36482218510fe80522d874aaf3d913b04598d35ff797a29f76",
   "content_version": "c666f10c86c5ef2818eecf5ba32acc6ef39d648a9eaca7658ca82bceb5b80552",
   "rule_version": "marine-student-v2",
-  "attempts": 1,
+  "attempts": 2,
   "quality": {
     "marine": 3,
     "research_or_data": 1,
