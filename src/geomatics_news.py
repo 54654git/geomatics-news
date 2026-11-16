@@ -348,8 +348,14 @@ def decode_page(response: requests.Response) -> str:
 
 
 def required_match(source: dict[str, Any], text: str) -> bool:
+    lowered = text.lower()
+    # A college feed matches 测绘 through its own name, so every sports day and
+    # party meeting passes. blocked_terms vetoes those before scoring.
+    blocked = source.get("blocked_terms", [])
+    if blocked and any(str(term).lower() in lowered for term in blocked):
+        return False
     terms = source.get("required_terms", [])
-    return not terms or any(str(term).lower() in text.lower() for term in terms)
+    return not terms or any(str(term).lower() in lowered for term in terms)
 
 
 def metric(source, key, count=1):

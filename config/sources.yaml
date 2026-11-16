@@ -79,6 +79,12 @@ sources:
   - 测绘
   max_items: 16
   request_interval: 1
+  # 2026-11-16 实测：mnr.gov.cn 的权威 DNS 从境外不可达。Cloudflare DoH 返回 SERVFAIL
+  # "No Reachable Authority"，Google DoH 空结果；只有国内 DoH 能解析，给出的
+  # wswebcdn 节点（120.221.x / 111.124.72.x）境外建连超时。属站点侧国别限制，
+  # 非本机或代码问题。标 optional 以免单源把 complete 打成 false、让整周的
+  # 补跑机会全部作废；本地运行时仍可正常采集。
+  optional: true
   enabled: true
   max_pages: 2
 - id: mnr_ocean
@@ -94,6 +100,7 @@ sources:
   - 海洋
   max_items: 16
   request_interval: 1
+  optional: true
   enabled: true
   max_pages: 2
 - id: glut_news
@@ -736,6 +743,27 @@ sources:
   - 导航
   - 学术
   - 科研
+  # 「测绘学院」自带「测绘」，学院活动稿会全部通过词表，必须单独否决。
+  blocked_terms: &campus_events
+  - 主题党日
+  - 党课
+  - 羽毛球
+  - 篮球
+  - 排球
+  - 足球赛
+  - 运动会
+  - 拔河
+  - 合唱
+  - 晚会
+  - 迎新
+  - 讲课竞赛
+  - 访企拓岗
+  - 职业规划大赛
+  - 秋日市集
+  - 表彰
+  - 慰问
+  - 走访
+  - 座谈
   tags:
   - 本校
   - 测绘
@@ -762,6 +790,7 @@ sources:
   - 导航
   - 学术
   - 科研
+  blocked_terms: *campus_events
   tags:
   - 本校
   - 测绘
