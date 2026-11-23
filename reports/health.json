@@ -6,10 +6,10 @@
     "start": "2026-11-16T00:00:00+08:00",
     "end": "2026-11-23T00:00:00+08:00"
   },
-  "checked_at": "2026-11-23T03:01:19.435174+00:00",
-  "generated_at": "2026-11-23T11:01:19+08:00",
-  "complete": true,
-  "core_complete": true,
+  "checked_at": "2026-11-23T07:51:10.847676+00:00",
+  "generated_at": "2026-11-23T15:51:11+08:00",
+  "complete": false,
+  "core_complete": false,
   "supplement_degraded": true,
   "selected": 3,
   "sources": [
@@ -54,19 +54,19 @@
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "正常",
+      "status": "部分失败",
       "candidates": 1,
       "recent": 1,
-      "detail": "",
+      "detail": "https://www.mnr.gov.cn/dt/ch/202609/t20260901_2937359.html: HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/202609/t20260901_2937359.html (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='www.mnr.gov.c",
       "optional": true,
       "metrics": {
         "list_pages": 1,
         "raw_links": 28,
         "topic_rejected": 14,
-        "detail_read": 14,
+        "detail_read": 13,
         "in_window": 1,
         "body_available": 1,
-        "outside_window": 13,
+        "outside_window": 12,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -138,21 +138,12 @@
     {
       "id": "nmdis_news",
       "name": "国家海洋信息中心（直接采集）",
-      "status": "正常",
-      "candidates": 1,
-      "recent": 1,
-      "detail": "",
+      "status": "失败",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "HTTPSConnectionPool(host='www.nmdis.org.cn', port=443): Max retries exceeded with url: / (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='www.nmdis.org.cn', port=443): Read timed out. (read timeout=25)\"))",
       "optional": false,
-      "metrics": {
-        "list_pages": 1,
-        "raw_links": 51,
-        "topic_rejected": 41,
-        "detail_read": 9,
-        "in_window": 1,
-        "body_available": 1,
-        "outside_window": 8,
-        "detail_budget_skipped": 0
-      },
+      "metrics": {},
       "selected": 0
     },
     {
@@ -385,18 +376,18 @@
     {
       "id": "tongji_sgg",
       "name": "同济大学测绘与地理信息学院（直接采集）",
-      "status": "部分失败",
+      "status": "正常",
       "candidates": 1,
       "recent": 1,
-      "detail": "https://celiang.tongji.edu.cn/info/1205/4791.htm: HTTPSConnectionPool(host='celiang.tongji.edu.cn', port=443): Max retries exceeded with url: /info/1205/4791.htm (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='celiang.tongji.edu.cn', port=443)",
+      "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 1,
         "raw_links": 6,
-        "detail_read": 5,
+        "detail_read": 6,
         "in_window": 1,
         "body_available": 1,
-        "outside_window": 4,
+        "outside_window": 5,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -422,12 +413,15 @@
     {
       "id": "google_news_cn_marine",
       "name": "谷歌新闻·中文海洋测绘检索（聚合，广度补充）",
-      "status": "失败",
+      "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": "429 Client Error: Too Many Requests for url: https://news.google.com/rss/search?q=%28%22%E6%B5%B7%E6%B4%8B%E6%B5%8B%E7%BB%98%22+OR+%22%E6%B5%B7%E9%81%93%E6%B5%8B%E9%87%8F%22+OR+%22%E6%B0%B4%E6%B7%B1%E6%B5%8B%E9%87%8F%22+OR+%22%E6%B5%B7%E5%BA%95%E5%9C",
+      "detail": "",
       "optional": true,
-      "metrics": {},
+      "metrics": {
+        "raw_links": 1,
+        "topic_rejected": 1
+      },
       "selected": 0
     },
     {
@@ -439,10 +433,10 @@
       "detail": "；5 条聚合原文未解析，仅作待核实线索",
       "optional": true,
       "metrics": {
-        "raw_links": 8,
+        "raw_links": 7,
         "in_window": 6,
         "original_unresolved": 5,
-        "topic_rejected": 2,
+        "topic_rejected": 1,
         "body_available": 1
       },
       "selected": 1
@@ -533,13 +527,13 @@
   "config_hash": "07dd68f60324b12e0b4c1c2906ef8f2ceed4a3543d70030283ec3a25b8f37d91",
   "content_version": "0b4a9dd8c15e07b13943d231fabf0724af4882049dabf7780baaf42e7a9aaf56",
   "rule_version": "marine-student-v2",
-  "attempts": 1,
+  "attempts": 2,
   "quality": {
     "marine": 2,
     "research_or_data": 0,
     "policy": 0,
     "title_only_in_main": 0,
-    "zero_candidate_sources": 22
+    "zero_candidate_sources": 23
   },
   "manual_review": "规则筛选和节选；没有全网召回率保证，科研价值需结合导师意见。"
 }
