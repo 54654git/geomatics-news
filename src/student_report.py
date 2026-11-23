@@ -26,8 +26,12 @@ def render(g, db, report_dir, since_days, limit, translate, config=None):
         for sid,source in sources.items():
             if sid not in observed:
                 statuses.append(dict(id=sid,name=source['name'],status='失败',optional=source.get('optional',False),recent=0,detail='本轮没有该来源的采集记录',metrics={}))
-    core=[s for s in statuses if s['status']!='正常' and not s.get('optional')]
-    optional=[s for s in statuses if s['status']!='正常' and s.get('optional')]
+    # 部分失败只说明个别条目日期缺失被跳过，来源本身已经读到内容并产出了条目，
+    # 不应与“整站抓不到”等价。否则一条日期异常的详情页就能让整轮判失败，
+    # 周一 16 个补跑机会全部作废。
+    core=[s for s in statuses if s['status']=='失败' and not s.get('optional')]
+    core_ids={s['id'] for s in core}
+    optional=[s for s in statuses if s['status']!='正常' and s['id'] not in core_ids]
     zero=[s for s in statuses if not s['recent']]
     columns={r[1] for r in conn.execute('PRAGMA table_info(articles)')}
     if 'translation_input_hash' not in columns:

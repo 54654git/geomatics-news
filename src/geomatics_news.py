@@ -719,7 +719,12 @@ def collect_google_news(source: dict[str, Any], session: requests.Session, fetch
     except requests.RequestException as exc:
         raise SourceError(str(exc)) from exc
     if not parsed.entries:
-        raise SourceError("Google 新闻搜索没有返回条目，查询可能过长或已被限流")
+        # A valid feed with zero items means the query simply had no hits this
+        # week, which is normal for a narrow topic. Only an unparseable response
+        # is a source failure.
+        if getattr(parsed, "feed", None) and parsed.feed.get("title"):
+            return []
+        raise SourceError("Google 新闻搜索返回的内容不是可解析的订阅源")
     blocked = [str(domain).lower() for domain in source.get("blocked_domains", [])]
     articles: list[Article] = []
     metric(source,'raw_links',len(parsed.entries))

@@ -127,8 +127,8 @@ jobs:
           h=json.loads(path.read_text(encoding='utf-8'))
           if h.get('period_id') != os.environ['EXPECTED_PERIOD']:
               raise SystemExit('Report period is stale or missing; delivery not verified.')
-          core=[s['name'] for s in h['sources'] if s['status']!='正常' and not s.get('optional')]
-          optional=[s['name'] for s in h['sources'] if s['status']!='正常' and s.get('optional')]
+          core=[s['name'] for s in h['sources'] if s['status']=='失败' and not s.get('optional')]
+          optional=[s['name'] for s in h['sources'] if s['status']!='正常' and s['name'] not in core]
           text=f"Period {h.get('period_id')}; selected {h['selected']}; core complete {h['complete']}; attempts {h.get('attempts')}."
           if core: text+=' Core missing: '+', '.join(core)
           if optional: text+=' Optional degraded: '+', '.join(optional)
