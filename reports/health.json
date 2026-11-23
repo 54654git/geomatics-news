@@ -6,12 +6,12 @@
     "start": "2026-11-16T00:00:00+08:00",
     "end": "2026-11-23T00:00:00+08:00"
   },
-  "checked_at": "2026-11-23T02:45:07.506640+00:00",
-  "generated_at": "2026-11-23T10:45:08+08:00",
+  "checked_at": "2026-11-23T02:52:21.715546+00:00",
+  "generated_at": "2026-11-23T10:52:22+08:00",
   "complete": true,
   "core_complete": true,
   "supplement_degraded": true,
-  "selected": 4,
+  "selected": 3,
   "sources": [
     {
       "id": "cnr_tech",
@@ -54,39 +54,23 @@
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "正常",
-      "candidates": 1,
-      "recent": 1,
-      "detail": "",
+      "status": "失败",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re",
       "optional": true,
-      "metrics": {
-        "list_pages": 1,
-        "raw_links": 28,
-        "topic_rejected": 14,
-        "detail_read": 14,
-        "in_window": 1,
-        "body_available": 1,
-        "outside_window": 13,
-        "detail_budget_skipped": 0
-      },
+      "metrics": {},
       "selected": 0
     },
     {
       "id": "mnr_ocean",
       "name": "自然资源部·海洋（直接采集）",
-      "status": "正常",
+      "status": "失败",
       "candidates": 0,
       "recent": 0,
-      "detail": "",
+      "detail": "HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/hy/ (Caused by NameResolutionError(\"HTTPSConnection(host='www.mnr.gov.cn', port=443): Failed to resolve 'www.mnr.gov.cn' ([Errno -3] Temporary failure in name re",
       "optional": true,
-      "metrics": {
-        "list_pages": 1,
-        "raw_links": 29,
-        "topic_rejected": 23,
-        "detail_read": 6,
-        "outside_window": 6,
-        "detail_budget_skipped": 0
-      },
+      "metrics": {},
       "selected": 0
     },
     {
@@ -388,7 +372,7 @@
       "status": "部分失败",
       "candidates": 1,
       "recent": 1,
-      "detail": "https://celiang.tongji.edu.cn/info/1206/2471.htm: HTTPSConnectionPool(host='celiang.tongji.edu.cn', port=443): Max retries exceeded with url: /info/1206/2471.htm (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='celiang.tongji.edu.cn', port=443)",
+      "detail": "无法确认发布日期，已跳过：https://celiang.tongji.edu.cn/info/1207/4862.htm; https://celiang.tongji.edu.cn/info/1207/4860.htm: HTTPSConnectionPool(host='celiang.tongji.edu.cn', port=443): Max retries exceeded with url: /info/1207/4860.htm (Caused by ReadTimeoutErr",
       "optional": false,
       "metrics": {
         "list_pages": 1,
@@ -397,7 +381,7 @@
         "in_window": 1,
         "body_available": 1,
         "outside_window": 4,
-        "date_missing": 2,
+        "date_missing": 1,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -428,7 +412,10 @@
       "recent": 0,
       "detail": "",
       "optional": true,
-      "metrics": {},
+      "metrics": {
+        "raw_links": 1,
+        "topic_rejected": 1
+      },
       "selected": 0
     },
     {
@@ -440,10 +427,10 @@
       "detail": "；5 条聚合原文未解析，仅作待核实线索",
       "optional": true,
       "metrics": {
-        "raw_links": 8,
+        "raw_links": 7,
         "in_window": 6,
         "original_unresolved": 5,
-        "topic_rejected": 2,
+        "topic_rejected": 1,
         "body_available": 1
       },
       "selected": 1
@@ -452,19 +439,17 @@
       "id": "sdust_geomatics",
       "name": "山东科技大学测绘与空间信息学院（本校）",
       "status": "正常",
-      "candidates": 5,
-      "recent": 5,
+      "candidates": 0,
+      "recent": 0,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 1,
         "raw_links": 87,
-        "topic_rejected": 59,
-        "detail_read": 18,
-        "in_window": 5,
-        "body_available": 5,
-        "outside_window": 13,
-        "detail_budget_skipped": 5
+        "topic_rejected": 73,
+        "detail_read": 12,
+        "outside_window": 12,
+        "detail_budget_skipped": 0
       },
       "selected": 0
     },
@@ -472,21 +457,17 @@
       "id": "sdust_survey_news",
       "name": "山科大新闻网·测绘学院（本校）",
       "status": "正常",
-      "candidates": 7,
-      "recent": 7,
+      "candidates": 0,
+      "recent": 0,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 2,
         "raw_links": 24,
-        "topic_rejected": 16,
-        "detail_read": 8,
-        "in_window": 7,
-        "body_available": 7,
-        "outside_window": 1,
+        "topic_rejected": 24,
         "detail_budget_skipped": 0
       },
-      "selected": 1
+      "selected": 0
     },
     {
       "id": "sdust_ocean_news",
@@ -537,16 +518,16 @@
       "selected": 0
     }
   ],
-  "config_hash": "28c4666b5e0cea36482218510fe80522d874aaf3d913b04598d35ff797a29f76",
-  "content_version": "be62053846bdbec553ce287fd6ed3b2d516b406d54881e2d45a1cf4f1072218b",
+  "config_hash": "f1bf9ea8034f720380368ec1a825df00320c1ea17d6a3a38a82ec7886f5c2487",
+  "content_version": "3bead3bf1939e167c71ec6177d518cb943208ed3e8596c0892b9aea6f0504316",
   "rule_version": "marine-student-v2",
   "attempts": 1,
   "quality": {
-    "marine": 3,
+    "marine": 2,
     "research_or_data": 0,
     "policy": 0,
     "title_only_in_main": 0,
-    "zero_candidate_sources": 20
+    "zero_candidate_sources": 23
   },
   "manual_review": "规则筛选和节选；没有全网召回率保证，科研价值需结合导师意见。"
 }
