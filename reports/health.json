@@ -6,12 +6,12 @@
     "start": "2026-11-16T00:00:00+08:00",
     "end": "2026-11-23T00:00:00+08:00"
   },
-  "checked_at": "2026-11-23T07:51:10.847676+00:00",
-  "generated_at": "2026-11-23T15:51:11+08:00",
-  "complete": false,
-  "core_complete": false,
-  "supplement_degraded": true,
-  "selected": 3,
+  "checked_at": "2026-11-23T11:25:29.926281+00:00",
+  "generated_at": "2026-11-23T19:25:30+08:00",
+  "complete": true,
+  "core_complete": true,
+  "supplement_degraded": false,
+  "selected": 4,
   "sources": [
     {
       "id": "cnr_tech",
@@ -54,19 +54,19 @@
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "部分失败",
+      "status": "正常",
       "candidates": 1,
       "recent": 1,
-      "detail": "https://www.mnr.gov.cn/dt/ch/202609/t20260901_2937359.html: HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ch/202609/t20260901_2937359.html (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='www.mnr.gov.c",
+      "detail": "",
       "optional": true,
       "metrics": {
         "list_pages": 1,
         "raw_links": 28,
         "topic_rejected": 14,
-        "detail_read": 13,
+        "detail_read": 14,
         "in_window": 1,
         "body_available": 1,
-        "outside_window": 12,
+        "outside_window": 13,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -138,12 +138,21 @@
     {
       "id": "nmdis_news",
       "name": "国家海洋信息中心（直接采集）",
-      "status": "失败",
-      "candidates": 0,
-      "recent": 0,
-      "detail": "HTTPSConnectionPool(host='www.nmdis.org.cn', port=443): Max retries exceeded with url: / (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='www.nmdis.org.cn', port=443): Read timed out. (read timeout=25)\"))",
+      "status": "正常",
+      "candidates": 1,
+      "recent": 1,
+      "detail": "",
       "optional": false,
-      "metrics": {},
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 51,
+        "topic_rejected": 39,
+        "detail_read": 11,
+        "in_window": 1,
+        "body_available": 1,
+        "outside_window": 10,
+        "detail_budget_skipped": 0
+      },
       "selected": 0
     },
     {
@@ -216,10 +225,10 @@
       "optional": false,
       "metrics": {
         "raw_links": 100,
+        "outside_window": 75,
         "in_window": 1,
         "body_available": 1,
-        "topic_rejected": 24,
-        "outside_window": 75
+        "topic_rejected": 24
       },
       "selected": 1
     },
@@ -428,18 +437,18 @@
       "id": "google_news_en_marine",
       "name": "谷歌新闻·英文海洋测绘检索（聚合，广度补充）",
       "status": "正常",
-      "candidates": 6,
-      "recent": 6,
-      "detail": "；5 条聚合原文未解析，仅作待核实线索",
+      "candidates": 8,
+      "recent": 8,
+      "detail": "；6 条聚合原文未解析，仅作待核实线索",
       "optional": true,
       "metrics": {
-        "raw_links": 7,
-        "in_window": 6,
-        "original_unresolved": 5,
-        "topic_rejected": 1,
-        "body_available": 1
+        "raw_links": 19,
+        "in_window": 8,
+        "original_unresolved": 6,
+        "body_available": 2,
+        "topic_rejected": 11
       },
-      "selected": 1
+      "selected": 2
     },
     {
       "id": "sdust_geomatics",
@@ -527,13 +536,13 @@
   "config_hash": "07dd68f60324b12e0b4c1c2906ef8f2ceed4a3543d70030283ec3a25b8f37d91",
   "content_version": "0b4a9dd8c15e07b13943d231fabf0724af4882049dabf7780baaf42e7a9aaf56",
   "rule_version": "marine-student-v2",
-  "attempts": 2,
+  "attempts": 3,
   "quality": {
-    "marine": 2,
+    "marine": 3,
     "research_or_data": 0,
     "policy": 0,
     "title_only_in_main": 0,
-    "zero_candidate_sources": 23
+    "zero_candidate_sources": 22
   },
   "manual_review": "规则筛选和节选；没有全网召回率保证，科研价值需结合导师意见。"
 }
