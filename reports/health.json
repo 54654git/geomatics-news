@@ -6,10 +6,10 @@
     "start": "2026-11-16T00:00:00+08:00",
     "end": "2026-11-23T00:00:00+08:00"
   },
-  "checked_at": "2026-11-23T02:21:48.320821+00:00",
-  "generated_at": "2026-11-23T10:21:48+08:00",
-  "complete": false,
-  "core_complete": false,
+  "checked_at": "2026-11-23T02:45:07.506640+00:00",
+  "generated_at": "2026-11-23T10:45:08+08:00",
+  "complete": true,
+  "core_complete": true,
   "supplement_degraded": true,
   "selected": 4,
   "sources": [
@@ -54,19 +54,19 @@
     {
       "id": "mnr_surveying",
       "name": "自然资源部·测绘（直接采集）",
-      "status": "部分失败",
+      "status": "正常",
       "candidates": 1,
       "recent": 1,
-      "detail": "https://www.mnr.gov.cn/dt/ywbb/202609/t20260908_2937903.html: HTTPSConnectionPool(host='www.mnr.gov.cn', port=443): Max retries exceeded with url: /dt/ywbb/202609/t20260908_2937903.html (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='www.mnr.g",
+      "detail": "",
       "optional": true,
       "metrics": {
         "list_pages": 1,
         "raw_links": 28,
         "topic_rejected": 14,
-        "detail_read": 13,
+        "detail_read": 14,
         "in_window": 1,
         "body_available": 1,
-        "outside_window": 12,
+        "outside_window": 13,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -388,15 +388,15 @@
       "status": "部分失败",
       "candidates": 1,
       "recent": 1,
-      "detail": "无法确认发布日期，已跳过：https://celiang.tongji.edu.cn/info/1207/4862.htm; 无法确认发布日期，已跳过：https://celiang.tongji.edu.cn/info/1207/4860.htm",
+      "detail": "https://celiang.tongji.edu.cn/info/1206/2471.htm: HTTPSConnectionPool(host='celiang.tongji.edu.cn', port=443): Max retries exceeded with url: /info/1206/2471.htm (Caused by ReadTimeoutError(\"HTTPSConnectionPool(host='celiang.tongji.edu.cn', port=443)",
       "optional": false,
       "metrics": {
         "list_pages": 1,
         "raw_links": 6,
-        "detail_read": 6,
+        "detail_read": 5,
         "in_window": 1,
         "body_available": 1,
-        "outside_window": 5,
+        "outside_window": 4,
         "date_missing": 2,
         "detail_budget_skipped": 0
       },
@@ -423,10 +423,10 @@
     {
       "id": "google_news_cn_marine",
       "name": "谷歌新闻·中文海洋测绘检索（聚合，广度补充）",
-      "status": "失败",
+      "status": "正常",
       "candidates": 0,
       "recent": 0,
-      "detail": "Google 新闻搜索没有返回条目，查询可能过长或已被限流",
+      "detail": "",
       "optional": true,
       "metrics": {},
       "selected": 0
@@ -538,7 +538,7 @@
     }
   ],
   "config_hash": "28c4666b5e0cea36482218510fe80522d874aaf3d913b04598d35ff797a29f76",
-  "content_version": "c666f10c86c5ef2818eecf5ba32acc6ef39d648a9eaca7658ca82bceb5b80552",
+  "content_version": "be62053846bdbec553ce287fd6ed3b2d516b406d54881e2d45a1cf4f1072218b",
   "rule_version": "marine-student-v2",
   "attempts": 1,
   "quality": {
