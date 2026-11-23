@@ -622,7 +622,9 @@ sources:
   article_url_pattern: /info/\d+/\d+\.htm
   allowed_domains:
   - celiang.tongji.edu.cn
-  date_xpath: //div[@class='singlepage-time']
+  # 2026-11 改版后日期容器由 div.singlepage-time 变成 div._time（如 2026.11.23），
+  # 只匹配旧 class 会让详情页拿不到日期而整源判“部分失败”。
+  date_xpath: //div[@class='singlepage-time' or @class='_time']
   title_xpath: .//h3
   required_terms:
   - 测绘
