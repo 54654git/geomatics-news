@@ -1,15 +1,15 @@
 {
-  "report_date": "2026-11-16",
-  "period_id": "2026-11-16",
+  "report_date": "2026-11-23",
+  "period_id": "2026-11-23",
   "period": {
-    "id": "2026-11-16",
-    "start": "2026-11-09T00:00:00+08:00",
-    "end": "2026-11-16T00:00:00+08:00"
+    "id": "2026-11-23",
+    "start": "2026-11-16T00:00:00+08:00",
+    "end": "2026-11-23T00:00:00+08:00"
   },
-  "checked_at": "2026-11-16T06:44:53.091848+00:00",
-  "generated_at": "2026-11-16T14:44:53+08:00",
-  "complete": true,
-  "core_complete": true,
+  "checked_at": "2026-11-23T02:21:48.320821+00:00",
+  "generated_at": "2026-11-23T10:21:48+08:00",
+  "complete": false,
+  "core_complete": false,
   "supplement_degraded": true,
   "selected": 4,
   "sources": [
@@ -17,32 +17,36 @@
       "id": "cnr_tech",
       "name": "央广网·科技（直接采集）",
       "status": "正常",
+      "candidates": 2,
+      "recent": 2,
+      "detail": "",
+      "optional": false,
+      "metrics": {
+        "list_pages": 1,
+        "raw_links": 10,
+        "topic_rejected": 8,
+        "detail_read": 2,
+        "in_window": 2,
+        "body_available": 1,
+        "detail_budget_skipped": 0
+      },
+      "selected": 1
+    },
+    {
+      "id": "xinhua_tech",
+      "name": "新华网·科技（直接采集）",
+      "status": "正常",
       "candidates": 1,
       "recent": 1,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 1,
-        "raw_links": 10,
-        "topic_rejected": 9,
-        "detail_read": 1,
+        "raw_links": 62,
+        "topic_rejected": 60,
+        "detail_read": 2,
+        "outside_window": 1,
         "in_window": 1,
-        "detail_budget_skipped": 0
-      },
-      "selected": 0
-    },
-    {
-      "id": "xinhua_tech",
-      "name": "新华网·科技（直接采集）",
-      "status": "正常",
-      "candidates": 0,
-      "recent": 0,
-      "detail": "",
-      "optional": false,
-      "metrics": {
-        "list_pages": 1,
-        "raw_links": 63,
-        "topic_rejected": 63,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -60,9 +64,9 @@
         "raw_links": 28,
         "topic_rejected": 14,
         "detail_read": 13,
-        "outside_window": 12,
         "in_window": 1,
         "body_available": 1,
+        "outside_window": 12,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -105,20 +109,17 @@
       "id": "cas_research",
       "name": "中国科学院·科研进展（直接采集）",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 0,
+      "recent": 0,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 1,
         "raw_links": 21,
-        "topic_rejected": 19,
-        "detail_read": 2,
-        "in_window": 2,
-        "body_available": 2,
+        "topic_rejected": 21,
         "detail_budget_skipped": 0
       },
-      "selected": 1
+      "selected": 0
     },
     {
       "id": "chinanews_rss",
@@ -130,8 +131,7 @@
       "optional": false,
       "metrics": {
         "raw_links": 30,
-        "topic_rejected": 29,
-        "outside_window": 1
+        "topic_rejected": 30
       },
       "selected": 0
     },
@@ -139,15 +139,17 @@
       "id": "nmdis_news",
       "name": "国家海洋信息中心（直接采集）",
       "status": "正常",
-      "candidates": 0,
-      "recent": 0,
+      "candidates": 1,
+      "recent": 1,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 1,
         "raw_links": 51,
-        "topic_rejected": 43,
-        "detail_read": 8,
+        "topic_rejected": 41,
+        "detail_read": 9,
+        "in_window": 1,
+        "body_available": 1,
         "outside_window": 8,
         "detail_budget_skipped": 0
       },
@@ -157,8 +159,8 @@
       "id": "fio_research",
       "name": "自然资源部第一海洋研究所·科研动态",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 0,
+      "recent": 0,
       "detail": "",
       "optional": false,
       "metrics": {
@@ -166,12 +168,10 @@
         "raw_links": 20,
         "topic_rejected": 16,
         "detail_read": 2,
-        "in_window": 1,
-        "body_available": 1,
-        "outside_window": 1,
+        "outside_window": 2,
         "detail_budget_skipped": 0
       },
-      "selected": 1
+      "selected": 0
     },
     {
       "id": "noaa_coast_survey",
@@ -219,16 +219,18 @@
       "id": "hydro_international",
       "name": "Hydro International（国际海道测量行业媒体 RSS）",
       "status": "正常",
-      "candidates": 0,
-      "recent": 0,
+      "candidates": 1,
+      "recent": 1,
       "detail": "",
       "optional": false,
       "metrics": {
         "raw_links": 100,
-        "outside_window": 76,
-        "topic_rejected": 24
+        "in_window": 1,
+        "body_available": 1,
+        "topic_rejected": 24,
+        "outside_window": 75
       },
-      "selected": 0
+      "selected": 1
     },
     {
       "id": "gim_international",
@@ -336,14 +338,15 @@
       "optional": false,
       "metrics": {
         "list_pages": 2,
-        "raw_links": 78,
+        "raw_links": 79,
         "topic_rejected": 77,
-        "detail_read": 1,
+        "detail_read": 2,
         "in_window": 1,
         "body_available": 1,
+        "outside_window": 1,
         "detail_budget_skipped": 0
       },
-      "selected": 1
+      "selected": 0
     },
     {
       "id": "whu_sgg",
@@ -382,17 +385,19 @@
     {
       "id": "tongji_sgg",
       "name": "同济大学测绘与地理信息学院（直接采集）",
-      "status": "正常",
-      "candidates": 0,
-      "recent": 0,
-      "detail": "",
+      "status": "部分失败",
+      "candidates": 1,
+      "recent": 1,
+      "detail": "无法确认发布日期，已跳过：https://celiang.tongji.edu.cn/info/1207/4862.htm; 无法确认发布日期，已跳过：https://celiang.tongji.edu.cn/info/1207/4860.htm",
       "optional": false,
       "metrics": {
         "list_pages": 1,
-        "raw_links": 7,
-        "topic_rejected": 3,
-        "detail_read": 4,
-        "outside_window": 4,
+        "raw_links": 6,
+        "detail_read": 6,
+        "in_window": 1,
+        "body_available": 1,
+        "outside_window": 5,
+        "date_missing": 2,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -408,7 +413,9 @@
       "metrics": {
         "list_pages": 1,
         "raw_links": 68,
-        "topic_rejected": 68,
+        "topic_rejected": 67,
+        "detail_read": 1,
+        "outside_window": 1,
         "detail_budget_skipped": 0
       },
       "selected": 0
@@ -416,33 +423,28 @@
     {
       "id": "google_news_cn_marine",
       "name": "谷歌新闻·中文海洋测绘检索（聚合，广度补充）",
-      "status": "正常",
-      "candidates": 2,
-      "recent": 2,
-      "detail": "；2 条聚合原文未解析，仅作待核实线索",
+      "status": "失败",
+      "candidates": 0,
+      "recent": 0,
+      "detail": "Google 新闻搜索没有返回条目，查询可能过长或已被限流",
       "optional": true,
-      "metrics": {
-        "raw_links": 5,
-        "in_window": 2,
-        "original_unresolved": 2,
-        "topic_rejected": 3
-      },
+      "metrics": {},
       "selected": 0
     },
     {
       "id": "google_news_en_marine",
       "name": "谷歌新闻·英文海洋测绘检索（聚合，广度补充）",
       "status": "正常",
-      "candidates": 4,
-      "recent": 4,
-      "detail": "；3 条聚合原文未解析，仅作待核实线索",
+      "candidates": 6,
+      "recent": 6,
+      "detail": "；5 条聚合原文未解析，仅作待核实线索",
       "optional": true,
       "metrics": {
-        "raw_links": 9,
-        "topic_rejected": 5,
-        "in_window": 4,
-        "body_available": 1,
-        "original_unresolved": 3
+        "raw_links": 8,
+        "in_window": 6,
+        "original_unresolved": 5,
+        "topic_rejected": 2,
+        "body_available": 1
       },
       "selected": 1
     },
@@ -450,19 +452,19 @@
       "id": "sdust_geomatics",
       "name": "山东科技大学测绘与空间信息学院（本校）",
       "status": "正常",
-      "candidates": 2,
-      "recent": 2,
+      "candidates": 5,
+      "recent": 5,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 1,
-        "raw_links": 88,
-        "topic_rejected": 65,
+        "raw_links": 87,
+        "topic_rejected": 59,
         "detail_read": 18,
-        "in_window": 2,
-        "body_available": 2,
-        "outside_window": 16,
-        "detail_budget_skipped": 1
+        "in_window": 5,
+        "body_available": 5,
+        "outside_window": 13,
+        "detail_budget_skipped": 5
       },
       "selected": 0
     },
@@ -470,21 +472,21 @@
       "id": "sdust_survey_news",
       "name": "山科大新闻网·测绘学院（本校）",
       "status": "正常",
-      "candidates": 1,
-      "recent": 1,
+      "candidates": 7,
+      "recent": 7,
       "detail": "",
       "optional": false,
       "metrics": {
         "list_pages": 2,
         "raw_links": 24,
-        "topic_rejected": 17,
-        "detail_read": 7,
-        "in_window": 1,
-        "body_available": 1,
-        "outside_window": 6,
+        "topic_rejected": 16,
+        "detail_read": 8,
+        "in_window": 7,
+        "body_available": 7,
+        "outside_window": 1,
         "detail_budget_skipped": 0
       },
-      "selected": 0
+      "selected": 1
     },
     {
       "id": "sdust_ocean_news",
@@ -538,13 +540,13 @@
   "config_hash": "28c4666b5e0cea36482218510fe80522d874aaf3d913b04598d35ff797a29f76",
   "content_version": "c666f10c86c5ef2818eecf5ba32acc6ef39d648a9eaca7658ca82bceb5b80552",
   "rule_version": "marine-student-v2",
-  "attempts": 2,
+  "attempts": 1,
   "quality": {
     "marine": 3,
-    "research_or_data": 1,
+    "research_or_data": 0,
     "policy": 0,
     "title_only_in_main": 0,
-    "zero_candidate_sources": 21
+    "zero_candidate_sources": 20
   },
   "manual_review": "规则筛选和节选；没有全网召回率保证，科研价值需结合导师意见。"
 }
